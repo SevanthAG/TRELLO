@@ -1,9 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;600;700;800;900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
+
+@theme {
+    --font-block: "Bungee", "Arial Black", "Geist Variable", sans-serif;
+    --font-body: "Nunito", "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+}
 
 @theme inline {
     --font-heading: var(--font-sans);
@@ -127,4 +133,14 @@
   html {
     @apply font-sans;
     }
+}
+
+@layer utilities {
+  .stud-bg {
+    background-color: #141417;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(255, 46, 46, 0.22), transparent 55%),
+      radial-gradient(rgba(255, 255, 255, 0.09) 2.2px, transparent 2.6px);
+    background-size: auto, 32px 32px;
+  }
 }

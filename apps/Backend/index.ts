@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { prisma } from "db/client";
 import express from "express";
 import bcrypt from "bcrypt";
@@ -6,6 +7,11 @@ import jwt from "jsonwebtoken";
 const app = express();
 
 app.use(express.json());
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set");
+}
 
 // Health
 app.get("/", (req, res) => {
@@ -17,15 +23,15 @@ app.get("/", (req, res) => {
 // Auth
 app.post("/signup", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
 
-    if (!email || !password) {
+    if (!username || !email || !password) {
       return res.status(400).json({
-        message: "Email and password are required",
+        message: "Username, email and password are required",
       });
     }
 
-    const userExist = await prisma.user.findFirst({
+    const userExist = await prisma.user.findUnique({
       where: {
         email: email,
       },
@@ -39,21 +45,27 @@ app.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = prisma.user.create({
+    const user = await prisma.user.create({
       data: {
+        username,
         email,
         password: hashedPassword,
       },
     });
 
-    res.status(201).json({
-      message: "Signup successfull",
+    return res.status(201).json({
+      message: "Signup successful",
       user: {
-        id: (await user).id,
-        email: (await user).email,
+        id: user.id,
+        email: user.email,
       },
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      return res.status(409).json({
+        message: "User already exists",
+      });
+    }
     console.log(err);
     return res.status(500).json({
       message: "Error..!!",
@@ -71,7 +83,7 @@ app.post("/signin", async (req, res) => {
       });
     }
 
-    const userExist = await prisma.user.findFirst({
+    const userExist = await prisma.user.findUnique({
       where: {
         email: email,
       },
@@ -95,11 +107,17 @@ app.post("/signin", async (req, res) => {
       {
         userId: userExist.id,
       },
-      process.env.JWT_SECRET!,
+      JWT_SECRET,
+      { expiresIn: "7d" },
     );
 
     return res.status(200).json({
       message: "Signin successful",
+      user: {
+        id: userExist.id,
+        username: userExist.username,
+        email: userExist.email,
+      },
       token,
     });
   } catch (err) {
