@@ -4,14 +4,19 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bcrypt": "^6.0.0",
+    "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.10"
   },
   "peerDependencies": {
-    "typescript": "^7"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "@types/express": "^5.0.6",
+    "bcrypt": "^6.0.0",
+    "db": "*",
+    "dotenv": "^18.0.4",
     "express": "^5.2.1",
-    "db" : "*"
+    "jsonwebtoken": "^9.0.3"
   }
 }
