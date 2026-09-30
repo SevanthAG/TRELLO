@@ -16,5 +16,8 @@
     "@prisma/client": "7",
     "dotenv": "^18.0.4",
     "pg": "^8.23.0"
+  },
+  "exports": {
+    "./client": "./index.ts" 
   }
 }
