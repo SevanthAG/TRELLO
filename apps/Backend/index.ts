@@ -7,7 +7,6 @@ const app = express();
 
 app.use(express.json());
 
-
 // Health
 app.get("/", (req, res) => {
   res.json({
@@ -37,7 +36,7 @@ app.post("/signup", async (req, res) => {
         message: "User already exists",
       });
     }
-    
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = prisma.user.create({
