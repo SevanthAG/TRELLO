@@ -6,6 +6,28 @@ import jwt from "jsonwebtoken";
 
 const app = express();
 
+const allowedOrigins = new Set([
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Vary", "Origin");
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -13,14 +35,10 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not set");
 }
 
-// Health
-app.get("/", (req, res) => {
-  res.json({
-    message: "Server Is running..",
-  });
+app.get("/", (_req, res) => {
+  res.json({ message: "Server is running." });
 });
 
-// Auth
 app.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -31,13 +49,9 @@ app.post("/signup", async (req, res) => {
       });
     }
 
-    const userExist = await prisma.user.findUnique({
-      where: {
-        email: email,
-      },
-    });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
 
-    if (userExist) {
+    if (existingUser) {
       return res.status(409).json({
         message: "User already exists",
       });
@@ -60,13 +74,18 @@ app.post("/signup", async (req, res) => {
         email: user.email,
       },
     });
-  } catch (err: any) {
-    if (err?.code === "P2002") {
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
       return res.status(409).json({
         message: "User already exists",
       });
     }
-    console.log(err);
+    console.error(error);
     return res.status(500).json({
       message: "Error..!!",
     });
@@ -83,45 +102,39 @@ app.post("/signin", async (req, res) => {
       });
     }
 
-    const userExist = await prisma.user.findUnique({
-      where: {
-        email: email,
-      },
+    const user = await prisma.user.findUnique({
+      where: { email },
     });
 
-    if (!userExist) {
+    if (!user) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, userExist.password);
+    const passwordMatches = await bcrypt.compare(password, user.password);
 
-    if (!isPasswordValid) {
+    if (!passwordMatches) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    const token = jwt.sign(
-      {
-        userId: userExist.id,
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" },
-    );
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
-    return res.status(200).json({
+    return res.json({
       message: "Signin successful",
       user: {
-        id: userExist.id,
-        username: userExist.username,
-        email: userExist.email,
+        id: user.id,
+        username: user.username,
+        email: user.email,
       },
       token,
     });
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.error(error);
     return res.status(500).json({
       message: "Error..!!",
     });

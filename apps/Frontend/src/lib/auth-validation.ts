@@ -2,7 +2,6 @@ export interface SignupErrors {
   username?: string;
   email?: string;
   password?: string;
-  confirmPassword?: string;
 }
 
 export interface SigninErrors {
@@ -17,12 +16,11 @@ export function validateSignup(values: {
   username: string;
   email: string;
   password: string;
-  confirmPassword: string;
 }): SignupErrors {
   const errors: SignupErrors = {};
   const username = values.username.trim();
   const email = values.email.trim();
-  const { password, confirmPassword } = values;
+  const { password } = values;
 
   if (!username) errors.username = "Pick a username.";
   else if (username.length < 3) errors.username = "Min 3 characters.";
@@ -38,10 +36,6 @@ export function validateSignup(values: {
   else if (!/[a-z]/.test(password) || !/[A-Z]/.test(password))
     errors.password = "Add upper + lowercase letters.";
   else if (!/[0-9]/.test(password)) errors.password = "Add at least 1 number.";
-
-  if (!confirmPassword) errors.confirmPassword = "Repeat your password.";
-  else if (confirmPassword !== password)
-    errors.confirmPassword = "Passwords don't match.";
 
   return errors;
 }

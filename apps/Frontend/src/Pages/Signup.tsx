@@ -46,14 +46,13 @@ const Signup = () => {
     username: "",
     email: "",
     password: "",
-    confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<SignupErrors>({});
   const [loading, setLoading] = useState(false);
 
-  const { username, email, password, confirmPassword } = form;
+  const { username, email, password } = form;
   const score = passwordScore(password);
 
   const updateField = (field: keyof typeof form, value: string) => {
@@ -64,7 +63,7 @@ const Signup = () => {
   const handleSignup = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const validation = validateSignup({ username, email, password, confirmPassword });
+    const validation = validateSignup({ username, email, password });
     setErrors(validation);
     if (Object.keys(validation).length > 0) {
       toast.add({
@@ -86,7 +85,11 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      await api.post("/signup", { email: email.trim(), password });
+      await api.post("/signup", {
+        username: username.trim(),
+        email: email.trim(),
+        password,
+      });
       toast.add({
         title: "Account created",
         description: "Your account is ready. Please sign in.",
@@ -210,26 +213,6 @@ const Signup = () => {
               </span>
             </div>
           )}
-        </div>
-
-        <div>
-          <label htmlFor="confirmPassword" className="text-sm font-extrabold">
-            Confirm password
-          </label>
-          <div className="relative mt-1.5">
-            <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-500" strokeWidth={2.5} />
-            <Input
-              id="confirmPassword"
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="Repeat your password"
-              value={confirmPassword}
-              onChange={(e) => updateField("confirmPassword", e.target.value)}
-              aria-invalid={Boolean(errors.confirmPassword)}
-              className={inputClass(errors.confirmPassword)}
-            />
-          </div>
-          <FieldError message={errors.confirmPassword} />
         </div>
 
         <label className="flex cursor-pointer items-start gap-2.5 text-xs font-bold text-neutral-700">
