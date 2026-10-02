@@ -3,8 +3,12 @@ import { prisma } from "db/client";
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import type { JwtUser } from "./types";
+import { authmiddleware } from "./authmidleware";
 
 const app = express();
+
+
 
 const allowedOrigins = new Set([
   "http://localhost:5173",
@@ -30,7 +34,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET!;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not set");
 }
@@ -120,7 +124,11 @@ app.post("/signin", async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+    const jwtPayload: JwtUser = {
+      userId: user.id,
+    }
+
+    const token = jwt.sign(jwtPayload, JWT_SECRET!, {
       expiresIn: "7d",
     });
 
@@ -140,6 +148,48 @@ app.post("/signin", async (req, res) => {
     });
   }
 });
+
+app.post('/post', authmiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const orgName = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized"
+      })
+    }
+
+    const existingOrg = await prisma.organization.findFirst({
+      where: {
+        name: orgName
+      }
+    })
+
+    if (existingOrg) {
+      return res.status(401).json({
+        message: "Organization ALready exist"
+      })
+    }
+    const organization = await prisma.organization.create({
+      data: {
+        name: orgName
+      }
+    })
+
+    return res.status(201).json({
+      message: "Organization Created Successfully..",
+      organization
+    })
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal server Error"
+    })
+  }
+})
+
+
 
 app.listen(3000, () => {
   console.log("Server is running...");
