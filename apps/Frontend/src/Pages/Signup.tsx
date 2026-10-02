@@ -22,6 +22,8 @@ import {
   type SignupErrors,
 } from "../lib/auth-validation";
 
+
+// Password Strength
 const STRENGTH_LABELS = ["Weak", "Fair", "Good", "Strong"];
 const STRENGTH_COLORS = [
   "bg-red-500",
@@ -30,6 +32,7 @@ const STRENGTH_COLORS = [
   "bg-green-500",
 ];
 
+// If field is Missing 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (

@@ -5,30 +5,18 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import type { JwtUser } from "./types";
 import { authmiddleware } from "./authmidleware";
+import cors from "cors";
 
 const app = express();
 
-const allowedOrigins = new Set([
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-]);
-
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  if (origin && allowedOrigins.has(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Vary", "Origin");
-  }
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-
-  next();
-});
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 app.use(express.json());
 
@@ -187,6 +175,29 @@ app.post('/organization', authmiddleware, async (req, res) => {
       message: "Internal server Error"
     })
   }
+})
+
+app.get("/organizations",authmiddleware, async (req, res)=>{
+  try {
+
+    const userId = req.userId;
+    
+    const organizations = await prisma.organization.findMany({
+      where: {
+        userId : userId
+      }
+    })
+    
+    return res.status(201).json({
+    message: "Organization data Fetched",
+    organizations
+  })
+  } catch(err) {
+    console.log(err);
+    return res.status(401).json({
+      message: "Internal Server Error"
+    })
+}
 })
 
 app.listen(3000, () => {

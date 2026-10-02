@@ -76,7 +76,7 @@ const Signin = () => {
         description: "You have signed in successfully.",
         type: "success",
       });
-      navigate("/");
+      navigate("/organization");
     } catch (error) {
       toast.add({
         title: "Sign in failed",
