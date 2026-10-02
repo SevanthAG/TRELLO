@@ -3,7 +3,7 @@ import  jwt  from "jsonwebtoken";
 import type { JwtUser } from "./types";
 
 export const authmiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const Authheader = req.headers.Authorization;
+    const Authheader = req.headers.authorization;
 
     if(!Authheader || typeof Authheader !== "string") {
         return res.status(401).json({
@@ -15,7 +15,7 @@ export const authmiddleware = (req: Request, res: Response, next: NextFunction) 
 
     if(!token){
         return res.status(401).json({
-            message: "Token Missing.."
+            message: "Token Missing..."
         })
     }
 

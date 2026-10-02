@@ -8,8 +8,6 @@ import { authmiddleware } from "./authmidleware";
 
 const app = express();
 
-
-
 const allowedOrigins = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
@@ -149,10 +147,10 @@ app.post("/signin", async (req, res) => {
   }
 });
 
-app.post('/post', authmiddleware, async (req, res) => {
+app.post('/organization', authmiddleware, async (req, res) => {
   try {
     const userId = req.userId;
-    const orgName = req.body;
+    const { orgName, description }  = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -173,7 +171,9 @@ app.post('/post', authmiddleware, async (req, res) => {
     }
     const organization = await prisma.organization.create({
       data: {
-        name: orgName
+        name: orgName,
+        description: description,
+        userId: userId
       }
     })
 
@@ -188,8 +188,6 @@ app.post('/post', authmiddleware, async (req, res) => {
     })
   }
 })
-
-
 
 app.listen(3000, () => {
   console.log("Server is running...");
