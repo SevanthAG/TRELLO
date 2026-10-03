@@ -72,7 +72,7 @@ const Organization = () => {
     setLoading(true);
 
     try {
-      await api.post("/organization", { orgName, description });
+      await api.post("/organization/create", { orgName, description });
       setForm({ orgName: "", description: "" });
       toast.add({
         title: "Workspace created",

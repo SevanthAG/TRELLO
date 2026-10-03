@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import authRoute from "./routes/auth.route";
 import orgRoute from "./routes/organization.route";
+import { authmiddleware } from "./middleware/authmidleware";
+import boardRoute from "./routes/board.route";
 
 const app = express();
 
@@ -22,7 +24,8 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/auth", authRoute);
-app.use("/api/organization", orgRoute);
+app.use("/api/organization",authmiddleware, orgRoute);
+app.use("/api/board", authmiddleware, boardRoute);
 
 
 app.listen(3000, () => {

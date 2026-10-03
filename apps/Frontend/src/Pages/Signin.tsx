@@ -62,7 +62,7 @@ const Signin = () => {
 
     setLoading(true);
     try {
-      const { data } = await api.post<{ token?: string }>("/signin", {
+      const { data } = await api.post<{ token?: string }>("auth/signin", {
         email: email.trim(),
         password,
       });
