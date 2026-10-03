@@ -1,0 +1,30 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import authRoute from "./routes/auth.route";
+import orgRoute from "./routes/organization.route";
+
+const app = express();
+
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+app.use(express.json());
+
+app.get("/", (_req, res) => {
+  res.json({ message: "Server is running." });
+});
+
+app.use("/api/auth", authRoute);
+app.use("/api/organization", orgRoute);
+
+
+app.listen(3000, () => {
+  console.log("Server is running...");
+});
