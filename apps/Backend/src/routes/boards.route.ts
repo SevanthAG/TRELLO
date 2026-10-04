@@ -3,7 +3,7 @@ import { Router } from "express";
 
 const boardRoute = Router();
 
-boardRoute.post(':orgId/board', async (req, res)=>{
+boardRoute.post('/:orgId/board', async (req, res)=>{
     try {
         const { title } = req.body;
         const userId = req.userId;

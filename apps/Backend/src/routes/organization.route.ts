@@ -248,6 +248,4 @@ orgRoute.post(":orgId/add-member", authmiddleware, async (req, res) => {
     }
 })
 
-
-
 export default orgRoute;
