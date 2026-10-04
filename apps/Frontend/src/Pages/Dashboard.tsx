@@ -1,11 +1,34 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useState } from 'react'
+import axios from 'axios'
+import { useEffect, useState } from 'react'
 
 const Dashboard = () => {
 
     const [selectedOrganization, setSelectedOrganization] = useState("")
+
+    useEffect(() => {
+        const getOrganization = async () => {
+            const token = localStorage.getItem("token")
+            try {
+                const response = await axios.get(
+                    "http://localhost:3000/api/organization/get-organizations",
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                )
+
+                console.log(response.data)
+            } catch (err) {
+                console.log("Error ", err)
+            }
+        }
+
+        getOrganization()
+    }, [])
     const items = [
         { label: "Apple", value: "apple" },
         { label: "Banana", value: "banana" },
