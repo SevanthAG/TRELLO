@@ -82,14 +82,14 @@ orgRoute.get('/get-organizations', authmiddleware, async (req, res) => {
 
         return res.status(200).json({
             message: "Organizations fetched successfully",
-            organizations: memberships.map(membership => {
+            organizations: memberships.map(m => {
                 return {
-                    id: membership.organization.id,
-                    name: membership.organization.name,
-                    description: membership.organization.description,
-                    role: membership.role
+                    id: m.organization.id,
+                    name: m.organization.name,
+                    description: m.organization.description,
+                    role: m.role
                 }
-            })
+            })  
         })
     } catch (err) {
         console.log(err);

@@ -6,7 +6,15 @@ import { useEffect, useState } from 'react'
 
 const Dashboard = () => {
 
+    type Organization = {
+        id: number
+        name: string
+        description: string
+        role: string
+    }
+    
     const [selectedOrganization, setSelectedOrganization] = useState("")
+    const [organization, setOrganization] = useState<Organization[]>([])
 
     useEffect(() => {
         const getOrganization = async () => {
@@ -20,8 +28,8 @@ const Dashboard = () => {
                         }
                     }
                 )
-
                 console.log(response.data)
+                setOrganization(response.data.organizations)
             } catch (err) {
                 console.log("Error ", err)
             }
@@ -29,13 +37,6 @@ const Dashboard = () => {
 
         getOrganization()
     }, [])
-    const items = [
-        { label: "Apple", value: "apple" },
-        { label: "Banana", value: "banana" },
-        { label: "Blueberry", value: "blueberry" },
-        { label: "Grapes", value: "grapes" },
-        { label: "Pineapple", value: "pineapple" },
-    ]
 
     return (
         <div>
@@ -54,9 +55,12 @@ const Dashboard = () => {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectGroup>
-                            {items.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
+                            {organization.map((org) => (
+                                <SelectItem
+                                    key={org.id}
+                                    value={String(org.id)}
+                                >
+                                    {org.name}
                                 </SelectItem>
                             ))}
                         </SelectGroup>
