@@ -155,7 +155,7 @@ orgRoute.get('/get-organization/:orgId', authmiddleware, async (req, res) => {
     }
 })
 
-orgRoute.post(":orgId/add-member", authmiddleware, async (req, res) => {
+orgRoute.post("/:orgId/add-member", authmiddleware, async (req, res) => {
     try {
         const userId = req.userId;
         const orgId = Number(req.params.orgId);

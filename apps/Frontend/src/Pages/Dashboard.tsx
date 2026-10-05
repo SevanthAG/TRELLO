@@ -3,7 +3,7 @@ import { Card, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import axios from 'axios'
 import { useEffect, useState } from 'react'
-
+import { useNavigate } from 'react-router';
 import {
     Dialog,
     DialogClose,
@@ -26,6 +26,7 @@ const Dashboard = () => {
     type Board = {
         id: number
         title: string
+        organizationId: number
     }
 
     const [selectedOrganization, setSelectedOrganization] = useState("")
@@ -36,6 +37,8 @@ const Dashboard = () => {
 
     const [board, setBoard] = useState<Board[]>([])
     const [title, setTitle] = useState("")
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const getOrganization = async () => {
@@ -130,7 +133,8 @@ const Dashboard = () => {
 
             const newBoard = {
                 id: response.data.board.id,
-                title: response.data.board.title
+                title: response.data.board.title,
+                organizationId: response.data.organizationId
             }
 
             setBoard([...board, newBoard])
@@ -144,6 +148,9 @@ const Dashboard = () => {
     return (
         <div>
             <h1>Dashboard</h1>
+            <Button onClick={()=>{
+                navigate(`/organization/${selectedOrganization}/settings`);
+            }}>Settings</Button>
             <div>
                 <Select
                     value={selectedOrganization}
@@ -254,9 +261,11 @@ const Dashboard = () => {
             </div>
 
             {board.map((board) => (
-                <Card size="sm" className="mx-auto w-full max-w-xs" key={board.id}>
+                <Card size="sm" className="mx-auto w-full max-w-xs" onClick={()=>{
+                    navigate(`organization/${board.organizationId}/board/${board.id}`)
+                }} key={board.id}>
                     <CardTitle>{board.title}</CardTitle>
-                </Card>
+                </Card>      
             ))}
 
         </div>
