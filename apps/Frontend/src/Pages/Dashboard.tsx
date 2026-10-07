@@ -262,7 +262,7 @@ const Dashboard = () => {
 
             {board.map((board) => (
                 <Card size="sm" className="mx-auto w-full max-w-xs" onClick={()=>{
-                    navigate(`organization/${board.organizationId}/board/${board.id}`)
+                    navigate(`/organization/${board.organizationId}/board/${board.id}`)
                 }} key={board.id}>
                     <CardTitle>{board.title}</CardTitle>
                 </Card>      

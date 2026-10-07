@@ -43,6 +43,14 @@ model Board {
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id])
   issues         Issue[]
+  section Section[]
+}
+
+model Section {
+  id Int @id @default(autoincrement())
+  title String
+  boardId Int
+  board Board @relation(fields: [boardId], references: [id])
 }
 
 model Issue {

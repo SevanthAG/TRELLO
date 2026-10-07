@@ -89,7 +89,7 @@ orgRoute.get('/get-organizations', authmiddleware, async (req, res) => {
                     description: m.organization.description,
                     role: m.role
                 }
-            })  
+            })
         })
     } catch (err) {
         console.log(err);
@@ -232,13 +232,10 @@ orgRoute.post("/:orgId/add-member", authmiddleware, async (req, res) => {
         })
 
         return res.status(201).json({
-            message: "Member added successfully",
-            membership: {
-                id: newMembership.id,
-                userId: newMembership.userId,
-                organizationId: newMembership.organizationId,
+                id: newMembership.userId,
+                username: user.username,
+                email: user.email,
                 role: newMembership.role
-            }
         })
     } catch (err) {
         console.log(err);
@@ -246,6 +243,56 @@ orgRoute.post("/:orgId/add-member", authmiddleware, async (req, res) => {
             message: "Internal server Error"
         })
     }
+})
+
+orgRoute.get("/:orgId/getMembers", authmiddleware, async (req, res) => {
+    const userId = req.userId;
+    const orgId = Number(req.params.orgId);
+
+    if (!Number.isInteger(orgId)) {
+        return res.status(400).json({
+            message: "Invalid organization ID"
+        });
+    }
+
+    if (!userId) {
+        return res.status(401).json({
+            message: "Unauthorized"
+        })
+    }
+
+    const checkMembership = await prisma.membership.findFirst({
+        where: {
+            organizationId: orgId,
+            userId: userId
+        }
+    })
+
+    if(!checkMembership){
+        return res.status(403).json({
+            message: "You are not the member of the Organization"
+        })
+    }
+
+    const membership = await prisma.membership.findMany({
+        where: {
+            organizationId: orgId
+        },
+        include: {
+            user: true
+        }
+    })
+
+    res.status(200).json({
+        message: "members fetched Successfully..",
+        membership: membership.map((member)=>({
+            id: member.user.id,
+            username: member.user.username,
+            email: member.user.email,
+            role: member.role,
+        })
+    )
+    })
 })
 
 export default orgRoute;

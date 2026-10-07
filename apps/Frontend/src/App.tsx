@@ -15,9 +15,9 @@ function App() {
           <Route path="/signin" element={<Signin />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="organization/:orgId/board/:boardId" element={<Board />} />
-          <Route path="organization/:orgId/settings" element={<Setting />} />
-
+          <Route path="/organization/:orgId/board/:boardId" element={<Board />} />
+          <Route path="/organization/:orgId/settings" element={<Setting />} />
+          
 
        
         </Routes>

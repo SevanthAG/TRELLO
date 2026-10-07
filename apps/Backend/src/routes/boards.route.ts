@@ -143,11 +143,11 @@ boardRoute.get('/:orgId/boards', async (req, res)=>{
     }
 })
 
-boardRoute.get('/:orgId/board/:boardId', async (req, res)=>{
+boardRoute.get('/', async (req, res)=>{
     try {
         const userId = req.userId;
-        const boardId = Number(req.params.boardId);
-        const orgId = Number(req.params.orgId);
+        const boardId = Number(req.query.boardId);
+        const orgId = Number(req.query.orgId);
 
         if (!userId) {
             return res.status(401).json({
@@ -215,5 +215,7 @@ boardRoute.get('/:orgId/board/:boardId', async (req, res)=>{
         })
     }
 })
+
+
 
 export default boardRoute;
