@@ -42,7 +42,6 @@ model Board {
   title          String
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id])
-  issues         Issue[]
   section Section[]
 }
 
@@ -51,12 +50,13 @@ model Section {
   title String
   boardId Int
   board Board @relation(fields: [boardId], references: [id])
+  Issue Issue[]
 }
 
 model Issue {
   id          Int    @id @default(autoincrement())
   title       String
   description String
-  boardId     Int
-  board       Board  @relation(fields: [boardId], references: [id])
+  sectionId     Int
+  section       Section  @relation(fields: [sectionId], references: [id])
 }

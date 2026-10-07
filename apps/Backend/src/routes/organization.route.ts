@@ -1,10 +1,9 @@
 import { Router } from "express";
 import { prisma } from "db/client";
-import { authmiddleware } from "../middleware/authmidleware";
 
 const orgRoute = Router();
 
-orgRoute.post('/create', authmiddleware, async (req, res) => {
+orgRoute.post('/create', async (req, res) => {
     try {
         const userId = req.userId;
 
@@ -61,7 +60,7 @@ orgRoute.post('/create', authmiddleware, async (req, res) => {
     }
 })
 
-orgRoute.get('/get-organizations', authmiddleware, async (req, res) => {
+orgRoute.get('/get-organizations', async (req, res) => {
     try {
         const userId = req.userId;
 
@@ -99,7 +98,7 @@ orgRoute.get('/get-organizations', authmiddleware, async (req, res) => {
     }
 })
 
-orgRoute.get('/get-organization/:orgId', authmiddleware, async (req, res) => {
+orgRoute.get('/get-organization/:orgId', async (req, res) => {
     try {
         const userId = req.userId;
         const orgId = Number(req.params.orgId);
@@ -155,7 +154,7 @@ orgRoute.get('/get-organization/:orgId', authmiddleware, async (req, res) => {
     }
 })
 
-orgRoute.post("/:orgId/add-member", authmiddleware, async (req, res) => {
+orgRoute.post("/:orgId/add-member", async (req, res) => {
     try {
         const userId = req.userId;
         const orgId = Number(req.params.orgId);
@@ -232,10 +231,10 @@ orgRoute.post("/:orgId/add-member", authmiddleware, async (req, res) => {
         })
 
         return res.status(201).json({
-                id: newMembership.userId,
-                username: user.username,
-                email: user.email,
-                role: newMembership.role
+            id: newMembership.userId,
+            username: user.username,
+            email: user.email,
+            role: newMembership.role
         })
     } catch (err) {
         console.log(err);
@@ -245,7 +244,7 @@ orgRoute.post("/:orgId/add-member", authmiddleware, async (req, res) => {
     }
 })
 
-orgRoute.get("/:orgId/getMembers", authmiddleware, async (req, res) => {
+orgRoute.get("/:orgId/getMembers", async (req, res) => {
     const userId = req.userId;
     const orgId = Number(req.params.orgId);
 
@@ -268,7 +267,7 @@ orgRoute.get("/:orgId/getMembers", authmiddleware, async (req, res) => {
         }
     })
 
-    if(!checkMembership){
+    if (!checkMembership) {
         return res.status(403).json({
             message: "You are not the member of the Organization"
         })
@@ -285,14 +284,93 @@ orgRoute.get("/:orgId/getMembers", authmiddleware, async (req, res) => {
 
     res.status(200).json({
         message: "members fetched Successfully..",
-        membership: membership.map((member)=>({
+        membership: membership.map((member) => ({
             id: member.user.id,
             username: member.user.username,
             email: member.user.email,
             role: member.role,
         })
-    )
+        )
     })
 })
+
+orgRoute.patch("/:orgId", async (req, res) => {
+    try {
+        const userId = req.userId;
+        const orgId = Number(req.params.orgId)
+        const { orgName, description } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({
+                message: "Unauthorized"
+            })
+        }
+
+        if (!Number.isInteger(orgId)) {
+            return res.status(400).json({
+                message: "Invalid orgId"
+            })
+        }
+
+        if (!orgName && !description) {
+            return res.status(400).json({
+                message: "Atleast one Field is Requied"
+            })
+        }
+
+        const organization = await prisma.organization.findFirst({
+            where: {
+                id: orgId
+            }
+        })
+
+        if (!organization) {
+            return res.status(404).json({
+                message: "Org Not Found"
+            })
+        }
+
+        const membership = await prisma.membership.findFirst({
+            where: {
+                userId: userId,
+                organizationId: orgId
+            }
+        })
+
+        if (!membership) {
+            return res.status(403).json({
+                message: "You are not the member of the Organization"
+            })
+        }
+
+        if (membership.role !== "ADMIN") {
+            return res.status(403).json({
+                message: "You are not allowedto modify the Organization"
+            })
+        }
+
+        const data = {
+            ...(orgName && { name: orgName }),
+            ...(description && { description })
+        };
+
+        const updatedOrg = await prisma.organization.update({
+            where: {
+                id: orgId
+            },
+            data
+        })
+        return res.status(200).json({
+            message: "Organization updated Successfully..",
+            organization: updatedOrg
+        })
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({
+            message: "Internal server Error"
+        })
+    }
+})
+
 
 export default orgRoute;

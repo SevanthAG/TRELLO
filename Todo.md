@@ -107,3 +107,18 @@
 4. Drag-drop UI + Card modal
 5. Labels, checklists, comments, due dates
 6. Polish, realtime, tests
+
+
+BOARD
+─────
+⬜ Delete
+
+SECTION
+───────
+⬜ Delete
+
+ISSUE
+─────
+⬜ Update
+⬜ Delete
+⬜ Move between sections
