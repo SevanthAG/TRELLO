@@ -182,7 +182,6 @@ const Board = () => {
         }
       );
 
-      console.log(response.data);
 
       setIssue((prev) => [
         ...prev,
