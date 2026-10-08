@@ -76,7 +76,7 @@ const Dashboard = () => {
                     }
                 )
                 setBoard(response.data.boards)
-                console.log(response.data.boards)
+                // console.log(response.data.boards)
             } catch (err) {
                 console.log(err);
             }
@@ -139,7 +139,7 @@ const Dashboard = () => {
 
             setBoard([...board, newBoard])
 
-            console.log(board);
+            // console.log(board);
         } catch (err) {
             console.log("Error while Creating Board", err)
         }
