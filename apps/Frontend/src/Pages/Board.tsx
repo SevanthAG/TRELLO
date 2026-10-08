@@ -29,12 +29,14 @@ const Board = () => {
 
   const [boardTitle, setBoardTitle] = useState("");
   const [title, setTitle] = useState("");
-  const [section, setSection] = useState<Section[]>([]);
 
+  const [section, setSection] = useState<Section[]>([]);
   const [issue, setIssue] = useState<Issue[]>([]);
+
   const [issueTittle, setIssueTittle] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
 
+ 
   useEffect(() => {
     const getBoardById = async () => {
       const token = localStorage.getItem("token");
@@ -48,7 +50,9 @@ const Board = () => {
             },
           }
         );
+
         const data = response.data.board;
+
         setBoardTitle(data.title);
       } catch (err) {
         console.log(err);
@@ -57,6 +61,7 @@ const Board = () => {
 
     getBoardById();
   }, [boardId, orgId]);
+
 
   useEffect(() => {
     const getSection = async () => {
@@ -83,6 +88,43 @@ const Board = () => {
     getSection();
   }, [boardId]);
 
+
+  useEffect(() => {
+    const getIssues = async () => {
+      const token = localStorage.getItem("token");
+
+      try {
+        const allIssues: Issue[] = [];
+
+        for (const currentSection of section) {
+          const response = await axios.get(
+            `http://localhost:3000/api/board/${boardId}/sections/${currentSection.id}/issues`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          const data = response.data;
+
+          console.log("ISSUE RESPONSE:", data);
+
+          allIssues.push(...data.Issue);
+        }
+
+        setIssue(allIssues);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    if (section.length > 0) {
+      getIssues();
+    }
+  }, [section, boardId]);
+
+
   const handleCreateSection = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
@@ -105,9 +147,10 @@ const Board = () => {
         }
       );
 
-      console.log(response.data);
-
-      setSection((prev) => [...prev, response.data.section]);
+      setSection((prev) => [
+        ...prev,
+        response.data.section,
+      ]);
 
       setTitle("");
     } catch (err) {
@@ -141,7 +184,10 @@ const Board = () => {
 
       console.log(response.data);
 
-      setIssue((prev) => [...prev, response.data.issue]);
+      setIssue((prev) => [
+        ...prev,
+        response.data.issue,
+      ]);
 
       setIssueTittle("");
       setIssueDescription("");
@@ -170,14 +216,19 @@ const Board = () => {
                 <Input
                   type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) =>
+                    setTitle(e.target.value)
+                  }
                   placeholder="Section title"
                 />
 
                 <DialogFooter>
                   <DialogClose
                     render={
-                      <Button variant="outline" type="button">
+                      <Button
+                        variant="outline"
+                        type="button"
+                      >
                         Cancel
                       </Button>
                     }
@@ -203,7 +254,28 @@ const Board = () => {
               {item.title}
             </h2>
 
-            {/* Create Issue */}
+            <div className="mt-4 space-y-2">
+              {issue
+                .filter(
+                  (currentIssue) =>
+                    currentIssue.sectionId === item.id
+                )
+                .map((currentIssue) => (
+                  <div
+                    key={currentIssue.id}
+                    className="rounded-md border bg-background p-3"
+                  >
+                    <h3 className="font-medium">
+                      {currentIssue.title}
+                    </h3>
+
+                    <p className="text-sm text-muted-foreground">
+                      {currentIssue.description}
+                    </p>
+                  </div>
+                ))}
+            </div>
+
             <div className="mt-4">
               <Dialog>
                 <DialogTrigger
@@ -233,7 +305,9 @@ const Board = () => {
                       type="text"
                       value={issueDescription}
                       onChange={(e) =>
-                        setIssueDescription(e.target.value)
+                        setIssueDescription(
+                          e.target.value
+                        )
                       }
                       placeholder="Issue description"
                     />
