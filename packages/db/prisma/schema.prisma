@@ -12,51 +12,55 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ADMIN
+  MEMBER
+}
+
 model User {
-  id            Int            @id @default(autoincrement())
-  username      String
+  id            String            @id @default(uuid())
   email         String         @unique
   password      String
   memberships   Membership[]
 }
 
 model Organization {
-  id          Int    @id @default(autoincrement())
+  id          String    @id @default(uuid())
   name        String @unique
   description String
   memberships Membership[]
-  Boards      Board[]
+  boards      Board[]
 }
 
 model Membership {
-  id             Int          @id @default(autoincrement())
-  userId         Int
-  organizationId Int
-  role           String
+  id             String          @id @default(uuid())
+  userId         String
+  organizationId String
+  role           Role @default(MEMBER)
   user           User         @relation(fields: [userId], references: [id])
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
 model Board {
-  id             Int          @id @default(autoincrement())
+  id             String          @id @default(uuid())
   title          String
-  organizationId Int
+  organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   section Section[]
 }
 
 model Section {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
   title String
-  boardId Int
+  boardId String
   board Board @relation(fields: [boardId], references: [id])
-  Issue Issue[]
+  issue Issue[]
 }
 
 model Issue {
-  id          Int    @id @default(autoincrement())
+  id          String    @id @default(uuid())
   title       String
   description String
-  sectionId     Int
+  sectionId     String
   section       Section  @relation(fields: [sectionId], references: [id])
 }
