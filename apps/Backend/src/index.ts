@@ -26,7 +26,7 @@ app.get("/", (_req, res) => {
 
 app.use("/api/auth", authRoute);
 app.use("/api/organization",authmiddleware, orgRoute);
-app.use("api/member", authmiddleware, memberRoute)
+app.use("/api/member", authmiddleware, memberRoute)
 app.use("/api/board", authmiddleware, boardRoute);
 
 

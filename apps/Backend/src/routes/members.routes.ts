@@ -3,18 +3,12 @@ import { prisma } from "db/client";
 
 const memberRoute = Router();
 
-
-orgRoute.post("/:orgId/add-member", async (req, res) => {
+memberRoute.post("/:orgId", async (req, res) => {
   try {
     const userId = req.userId;
-    const orgId = Number(req.params.orgId);
-    const { email, role } = req.body;
+    const { orgId } = req.params
 
-    if (!Number.isInteger(orgId)) {
-      return res.status(400).json({
-        message: "Invalid organization ID",
-      });
-    }
+    const { email, role } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -81,10 +75,8 @@ orgRoute.post("/:orgId/add-member", async (req, res) => {
     });
 
     return res.status(201).json({
-      id: newMembership.userId,
-      username: user.username,
-      email: user.email,
-      role: newMembership.role,
+        message: "Membership Created Successfully,",
+        newMembership
     });
   } catch (err) {
     console.log(err);
@@ -94,15 +86,10 @@ orgRoute.post("/:orgId/add-member", async (req, res) => {
   }
 });
 
-orgRoute.get("/:orgId/getMembers", async (req, res) => {
-  const userId = req.userId;
-  const orgId = Number(req.params.orgId);
 
-  if (!Number.isInteger(orgId)) {
-    return res.status(400).json({
-      message: "Invalid organization ID",
-    });
-  }
+memberRoute.get('/:orgId', async (req, res) => {
+  const userId = req.userId;
+  const { orgId } = req.params
 
   if (!userId) {
     return res.status(401).json({
@@ -136,7 +123,6 @@ orgRoute.get("/:orgId/getMembers", async (req, res) => {
     message: "members fetched Successfully..",
     membership: membership.map((member) => ({
       id: member.user.id,
-      username: member.user.username,
       email: member.user.email,
       role: member.role,
     })),
