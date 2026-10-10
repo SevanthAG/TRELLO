@@ -5,6 +5,7 @@ import authRoute from "./routes/auth.route";
 import orgRoute from "./routes/organization.route";
 import { authmiddleware } from "./middleware/authmidleware";
 import boardRoute from "./routes/boards.route";
+import memberRoute from "./routes/members.routes";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get("/", (_req, res) => {
 
 app.use("/api/auth", authRoute);
 app.use("/api/organization",authmiddleware, orgRoute);
+app.use("api/member", authmiddleware, memberRoute)
 app.use("/api/board", authmiddleware, boardRoute);
 
 

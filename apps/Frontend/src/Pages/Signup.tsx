@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 const Signup = () => {
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(""); 
 
@@ -14,7 +13,6 @@ const Signup = () => {
     e.preventDefault();
     try {
       const data = {
-        username,
         email,
         password
       }
@@ -36,7 +34,6 @@ const Signup = () => {
       <h2>Signup</h2>
 
       <form onSubmit={handleSubmit}>
-        <Input placeholder="Username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
         <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <Button type="submit">Signup</Button>
