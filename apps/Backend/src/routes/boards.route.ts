@@ -143,15 +143,15 @@ boardRoute.patch("/:orgId/:boardId", async (req, res) => {
     const { orgId, boardId } = req.params;
     const { title } = req.body;
 
-    if (!title) {
-      return res.status(400).json({
-        message: "Title is required",
-      });
-    }
-
     if (!userId) {
       return res.status(401).json({
         message: "Unauthorized",
+      });
+    }
+
+    if (!title) {
+      return res.status(400).json({
+        message: "Title is required",
       });
     }
 
@@ -182,8 +182,7 @@ boardRoute.patch("/:orgId/:boardId", async (req, res) => {
 
     if (membership.role !== "ADMIN") {
       return res.status(403).json({
-        message:
-          "You do not have permission to update this board",
+        message: "You do not have permission to update this board",
       });
     }
 
