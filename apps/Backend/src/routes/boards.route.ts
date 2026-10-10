@@ -3,736 +3,222 @@ import { Router } from "express";
 
 const boardRoute = Router();
 
-boardRoute.post('/:orgId/board', async (req, res) => {
-    try {
-        const { title } = req.body;
-        const userId = req.userId;
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
-        const orgId = Number(req.params.orgId);
-
-        if (!Number.isInteger(orgId)) {
-            return res.status(400).json({
-                message: "Invalid organization ID"
-            })
-        }
-
-        const organization = await prisma.organization.findUnique({
-            where: {
-                id: orgId
-            }
-        })
-
-        if (!organization) {
-            return res.status(404).json({
-                message: "Organization not found"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                userId: userId,
-                organizationId: orgId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "Forbidden"
-            })
-        }
-
-        if (membership.role !== "ADMIN") {
-            return res.status(403).json({
-                message: "You do not have permission to create a board in this organization"
-            })
-        }
-
-        const existingBoard = await prisma.board.findFirst({
-            where: {
-                organizationId: orgId,
-                title: title
-            }
-        })
-
-        if (existingBoard) {
-            return res.status(409).json({
-                message: "A board with this title already exists in this organization"
-            })
-        }
-
-        const newBoard = await prisma.board.create({
-            data: {
-                organizationId: orgId,
-                title: title
-            }
-        })
-
-        return res.status(201).json({
-            message: "Board created successfully",
-            board: newBoard
-        })
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+boardRoute.post("/:orgId", async (req, res) => {
+  try {
+    const { title } = req.body;
+    const userId = req.userId;
+    const { orgId } = req.params;
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
     }
-})
-
-boardRoute.get('/:orgId/boards', async (req, res) => {
-    try {
-        const userId = req.userId;
-        const orgId = Number(req.params.orgId);
-
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
-
-        if (!Number.isInteger(orgId)) {
-            return res.status(400).json({
-                message: "Invalid organization ID"
-            })
-        }
-
-        const organization = await prisma.organization.findUnique({
-            where: {
-                id: orgId
-            }
-        })
-
-        if (!organization) {
-            return res.status(404).json({
-                message: "Organization not found"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                userId: userId,
-                organizationId: orgId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "Forbidden"
-            })
-        }
-
-        const boards = await prisma.board.findMany({
-            where: {
-                organizationId: orgId
-            }
-        })
-
-        return res.status(200).json({
-            message: "Boards retrieved successfully",
-            boards: boards
-        })
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+    if (!title) {
+      return res.status(400).json({
+        message: "Title is required",
+      });
     }
-})
 
-boardRoute.get('/', async (req, res) => {
-    try {
-        const userId = req.userId;
-        const boardId = Number(req.query.boardId);
-        const orgId = Number(req.query.orgId);
+    const organization = await prisma.organization.findUnique({
+      where: {
+        id: orgId,
+      },
+    });
 
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
-
-        if (!Number.isInteger(boardId)) {
-            return res.status(400).json({
-                message: "Invalid board ID"
-            })
-        }
-
-        if (!Number.isInteger(orgId)) {
-            return res.status(400).json({
-                message: "Invalid organization ID"
-            })
-        }
-
-        const organization = await prisma.organization.findUnique({
-            where: {
-                id: orgId
-            }
-        })
-
-        if (!organization) {
-            return res.status(404).json({
-                message: "Organization not found"
-            })
-        }
-        const membership = await prisma.membership.findFirst({
-            where: {
-                userId: userId,
-                organizationId: orgId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "Forbidden"
-            })
-        }
-
-        const board = await prisma.board.findFirst({
-            where: {
-                id: boardId,
-                organizationId: orgId
-            }
-        })
-
-        if (!board) {
-            return res.status(404).json({
-                message: "Board not found"
-            })
-        }
-
-        return res.status(200).json({
-            message: "Board retrieved successfully",
-            board: board
-        })
-    } catch (err) {
-        console.log(err);
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+    if (!organization) {
+      return res.status(404).json({
+        message: "Organization not found",
+      });
     }
-})
 
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId: userId,
+        organizationId: orgId,
+      },
+    });
 
-boardRoute.post('/:boardId/sections', async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { title } = req.body;
-        const boardId = Number(req.params.boardId)
-
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
-
-        if (!Number.isInteger(boardId)) {
-            return res.status(400).json({
-                message: "Invalid board ID"
-            })
-        }
-
-        const board = await prisma.board.findFirst({
-            where: {
-                id: boardId
-            }
-        })
-
-        if (!board) {
-            return res.status(404).json({
-                message: "Board Not exist"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                organizationId: board.organizationId,
-                userId: userId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "You are not member of Organization"
-            })
-        }
-
-
-        if (membership.role !== "ADMIN") {
-            return res.status(403).json({
-                message: "You are not allowed"
-            })
-        }
-
-        const newSection = await prisma.section.create({
-            data: {
-                boardId: boardId,
-                title: title
-            }
-        })
-
-        return res.status(201).json({
-            message: "Section Created Successfully",
-            section: newSection
-        })
-    } catch (err) {
-        console.log("erroe while Creating Board")
+    if (!membership) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
     }
-})
 
-boardRoute.get('/:boardId/sections', async (req, res) => {
-    try {
-        const userId = req.userId;
-        const boardId = Number(req.params.boardId)
-
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
-
-        if (!Number.isInteger(boardId)) {
-            return res.status(400).json({
-                message: "Invalid board ID"
-            })
-        }
-
-        const board = await prisma.board.findFirst({
-            where: {
-                id: boardId
-            }
-        })
-
-        if (!board) {
-            return res.status(404).json({
-                message: "Board Not exist"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                organizationId: board.organizationId,
-                userId: userId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "You are not member of Organization"
-            })
-        }
-
-        const sections = await prisma.section.findMany({
-            where: {
-                boardId: boardId
-            }
-        })
-
-        return res.status(200).json({
-            message: "Board Fethed",
-            sections: sections
-        })
-    } catch (err) {
-        console.log("Error while fecthing Sections", err)
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+    if (membership.role !== "ADMIN") {
+      return res.status(403).json({
+        message:
+          "You do not have permission to create a board in this organization",
+      });
     }
-})
 
-boardRoute.post('/:boardId/sections/:sectionId/issue', async (req, res) => {
-    try {
-        const userId = req.userId
-        const boardId = Number(req.params.boardId);
-        const sectionId = Number(req.params.sectionId);
-        const { title, description } = req.body;
+    const existingBoard = await prisma.board.findFirst({
+      where: {
+        organizationId: orgId,
+        title: title,
+      },
+    });
 
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
-
-        if (!Number.isInteger(boardId) || !Number.isInteger(sectionId)) {
-            return res.status(400).json({
-                message: "Invalid board ID or sectionId"
-            })
-        }
-
-        const board = await prisma.board.findFirst({
-            where: {
-                id: boardId
-            }
-        })
-
-        if (!board) {
-            return res.status(404).json({
-                message: "Board Not exist"
-            })
-        }
-
-        const section = await prisma.section.findFirst({
-            where: {
-                id: sectionId,
-                boardId: boardId
-            }
-        })
-
-        if (!section) {
-            return res.status(403).json({
-                message: "Section Not Found"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                userId: userId,
-                organizationId: board.organizationId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "You are not member of Organization"
-            })
-        }
-
-        const newIssue = await prisma.issue.create({
-            data: {
-                title: title,
-                description: description,
-                sectionId: sectionId
-            }
-        })
-
-        return res.status(201).json({
-            message: "Issue Created Succsfully",
-            Issue: newIssue
-        })
-
-    } catch (err) {
-        console.log("Error while fecthing Sections", err)
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+    if (existingBoard) {
+      return res.status(409).json({
+        message: "A board with this title already exists in this organization",
+      });
     }
-})
 
-boardRoute.get('/:boardId/sections/:sectionId/issues', async (req, res) => {
-    try {
-        const userId = req.userId
-        const boardId = Number(req.params.boardId);
-        const sectionId = Number(req.params.sectionId);
+    const newBoard = await prisma.board.create({
+      data: {
+        organizationId: orgId,
+        title: title,
+      },
+    });
 
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
+    return res.status(201).json({
+      message: "Board created successfully",
+      newBoard,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal server Error",
+    });
+  }
+});
 
-        if (!Number.isInteger(boardId) || !Number.isInteger(sectionId)) {
-            return res.status(400).json({
-                message: "Invalid board ID or sectionId"
-            })
-        }
+boardRoute.get("/:orgId", async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { orgId } = req.params;
 
-        const board = await prisma.board.findFirst({
-            where: {
-                id: boardId
-            }
-        })
-
-        if (!board) {
-            return res.status(404).json({
-                message: "Board Not exist"
-            })
-        }
-
-        const section = await prisma.section.findFirst({
-            where: {
-                id: sectionId,
-                boardId: boardId
-            }
-        })
-
-        if (!section) {
-            return res.status(403).json({
-                message: "Section Not Found"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                userId: userId,
-                organizationId: board.organizationId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "You are not member of Organization"
-            })
-        }
-
-        const issues = await prisma.issue.findMany({
-            where: {
-                sectionId: sectionId
-            }
-        })
-
-        return res.status(200).json({
-            message: "Issue fetched Succsfully",
-            Issue: issues
-        })
-
-    } catch (err) {
-        console.log("Error while fecthing Sections", err)
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
     }
-})
 
-boardRoute.get('/:boardId/sections/:sectionId/issue/:issueId', async (req, res) => {
-    try {
-        const userId = req.userId
-        const boardId = Number(req.params.boardId)
-        const sectionId = Number(req.params.sectionId)
-        const issueId = Number(req.params.issueId)
+    const organization = await prisma.organization.findUnique({
+      where: {
+        id: orgId,
+      },
+    });
 
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
-
-        if (!Number.isInteger(boardId) || !Number.isInteger(sectionId) || !Number.isInteger(issueId)) {
-            return res.status(400).json({
-                message: "Invalid board ID or sectionId"
-            })
-        }
-
-        const board = await prisma.board.findFirst({
-            where: {
-                id: boardId
-            }
-        })
-
-        if (!board) {
-            return res.status(404).json({
-                message: "Board Not exist"
-            })
-        }
-
-        const section = await prisma.section.findFirst({
-            where: {
-                id: sectionId,
-                boardId: boardId
-            }
-        })
-
-        if (!section) {
-            return res.status(403).json({
-                message: "Section Not Found"
-            })
-        }
-        const issue = await prisma.issue.findFirst({
-            where: {
-                id: issueId,
-                sectionId: sectionId
-            }
-        })
-        if (!issue) {
-            return res.status(403).json({
-                message: "Issue Not Found"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                userId: userId,
-                organizationId: board.organizationId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "You are not member of Organization"
-            })
-        }
-
-        return res.status(200).json({
-            message: "issue fetched successfully",
-            issue: issue
-        })
-
-
-    } catch (err) {
-        console.log("Error while fecthing issue", err)
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+    if (!organization) {
+      return res.status(404).json({
+        message: "Organization not found",
+      });
     }
-}
-)
 
-boardRoute.put('/:boardId', async (req, res) => {
-    try {
-        const userId = req.userId
-        const boardId = Number(req.params.boardId)
-        const { title } = req.body
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId: userId,
+        organizationId: orgId,
+      },
+    });
 
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
-
-        if (!Number.isInteger(boardId)) {
-            return res.status(400).json({
-                message: "Invalid board ID"
-            })
-        }
-
-        const board = await prisma.board.findFirst({
-            where: {
-                id: boardId
-            }
-        })
-
-        if (!board) {
-            return res.status(404).json({
-                message: "Board Not Found"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                organizationId: board.organizationId,
-                userId: userId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "You are not member of Organization"
-            })
-        }
-
-        if(membership.role !== "ADMIN"){
-            return res.status(403).json({
-                message: "You are not allowed to modify"
-            })
-        }
-
-        const updatedBoard = await prisma.board.update({
-            where: {
-                id: boardId,
-            },
-            data: {
-                title: title
-            }
-        })
-
-        return res.status(200).json({
-            message: "board Updated",
-            board: updatedBoard
-        })
-
-    } catch (err) {
-        console.log("Error while fecthing issue", err)
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+    if (!membership) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
     }
-})
 
+    const boards = await prisma.board.findMany({
+      where: {
+        organizationId: orgId,
+      },
+    });
 
-boardRoute.put(':boardId/sections/:sectionId', async(req, res)=>{
-    try {
-        const userId = req.userId;
-        const boardId = Number(req.params.boardId)
-        const sectionId = Number(req.params.sectionId)
-        const { title } = req.body
+    return res.status(200).json({
+      message: "Boards retrieved successfully",
+      boards,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal server Error",
+    });
+  }
+});
 
-        if (!userId) {
-            return res.status(401).json({
-                message: "Unauthorized"
-            })
-        }
+boardRoute.patch("/:orgId/:boardId", async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { orgId, boardId } = req.params;
+    const { title } = req.body;
 
-        if (!Number.isInteger(boardId) || !Number.isInteger(sectionId)) {
-            return res.status(400).json({
-                message: "Invalid board ID or SectionId"
-            })
-        }
-
-        const section = await prisma.section.findFirst({
-            where: {
-                id: sectionId,
-                boardId: boardId
-            }
-        })
-
-        if(!section){
-            return res.status(404).json({
-                message: "Section Not exist"
-            })
-        }
-
-        const board = await prisma.board.findFirst({
-            where: {
-                id: boardId
-            }
-        })
-
-        if (!board) {
-            return res.status(404).json({
-                message: "Board Not exist"
-            })
-        }
-
-        const membership = await prisma.membership.findFirst({
-            where: {
-                organizationId: board.organizationId,
-                userId: userId
-            }
-        })
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "You are not member of Organization"
-            })
-        }
-
-        if(membership.role !== "ADMIN"){
-            return res.status(403).json({
-                message: "You are not allowedto modify the Organization"
-            })
-        }
-
-        const updatedSection = await prisma.section.update({
-            where: {
-                id: sectionId
-            },
-            data : {
-                title: title
-            }
-        })
-
-        return res.status(200).json({
-            message: "Section Updated",
-            sections: updatedSection
-        })
-
-    } catch (err) {
-        console.log("Error while fecthing Sections", err)
-        return res.status(500).json({
-            message: "Internal server Error"
-        })
+    if (!title) {
+      return res.status(400).json({
+        message: "Title is required",
+      });
     }
-})
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    const organization = await prisma.organization.findUnique({
+      where: {
+        id: orgId,
+      },
+    });
+
+    if (!organization) {
+      return res.status(404).json({
+        message: "Organization not found",
+      });
+    }
+
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId: userId,
+        organizationId: orgId,
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
+    }
+
+    if (membership.role !== "ADMIN") {
+      return res.status(403).json({
+        message:
+          "You do not have permission to update this board",
+      });
+    }
+
+    const existBoard = await prisma.board.findFirst({
+      where: {
+        id: boardId,
+        organizationId: orgId,
+      },
+    });
+
+    if (!existBoard) {
+      return res.status(404).json({
+        message: "Board not exist",
+      });
+    }
+
+    const updatedBoard = await prisma.board.update({
+      where: {
+        id: boardId,
+      },
+      data: {
+        title: title,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Board Updated",
+      updatedBoard,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal server Error",
+    });
+  }
+});
+
 export default boardRoute;

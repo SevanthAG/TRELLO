@@ -4,8 +4,8 @@ import cors from "cors";
 import authRoute from "./routes/auth.route";
 import orgRoute from "./routes/organization.route";
 import { authmiddleware } from "./middleware/authmidleware";
-import boardRoute from "./routes/boards.route";
 import memberRoute from "./routes/members.routes";
+import boardRoute from "./routes/boards.route";
 
 const app = express();
 
