@@ -21,7 +21,7 @@ app.use(cors({
 
 app.use(express.json());
 
-app.get("/", (_req, res) => {
+app.get("/", (req, res) => {
   res.json({ message: "Server is running." });
 });
 
@@ -29,7 +29,8 @@ app.use("/api/auth", authRoute);
 app.use("/api/organization",authmiddleware, orgRoute);
 app.use("/api/member", authmiddleware, memberRoute)
 app.use("/api/board", authmiddleware, boardRoute);
-app.use("api/section", authmiddleware, sectionRouter)
+app.use("/api/section", authmiddleware, sectionRouter)
+app.use("/api/issue", authmiddleware, sectionRouter)
 
 
 app.listen(3000, () => {
