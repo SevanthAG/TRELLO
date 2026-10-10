@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import axios from "axios";
+import { toast } from "@/components/ui/toast";
+import { api } from "@/lib/api";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -10,24 +11,31 @@ const Signin = () => {
 
   const navigate  = useNavigate();
   const handleSignin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     try {
-      event.preventDefault();
 
       const data = {
         email,
         password
       }
 
-      const response  = await axios.post('http://localhost:3000/api/auth/signin', data);
+      const response  = await api.post('/auth/signin', data);
       const token = response.data.token;
 
       localStorage.setItem('token', token);
-
-      console.log("Signin successful:", response.data);
-
+      toast.add({
+        title: "Signin successful!",
+        description: "Logged in Succssful.",
+        type: "success",
+      });
       navigate('/dashboard');
     } catch (error) {
-      console.error("Error during sign-in:", error);
+      console.error(error);
+      toast.add({
+        title: "Signin failed",
+        description: "Unable to signin. Please try again.",
+        type: "error"
+      });
     }
   };
   return (  
