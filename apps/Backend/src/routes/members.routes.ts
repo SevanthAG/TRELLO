@@ -76,7 +76,11 @@ memberRoute.post("/:orgId", async (req, res) => {
 
     return res.status(201).json({
         message: "Membership Created Successfully,",
-        newMembership
+        member : {
+          id: user.id,
+          email: user.email,
+          role: newMembership.role
+        }
     });
   } catch (err) {
     console.log(err);
