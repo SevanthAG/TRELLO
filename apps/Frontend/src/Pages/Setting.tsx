@@ -129,7 +129,6 @@ const Setting = () => {
             placeholder="Enter member email"
           />
           <Select
-            items={items}
             value={role}
             onValueChange={(value) => {
               if (value !== null) {
@@ -158,17 +157,17 @@ const Setting = () => {
       <div>
         <p>Members Of organization</p>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-25">UserId</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-            </TableRow>
-          </TableHeader>
-          {member.length === 0 ? (
-            <p>No members yet — add one above</p>
-          ) : (
+        {member.length === 0 ? (
+          <p>No members yet — add one above</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-25">UserId</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {member.map((m) => (
                 <TableRow key={m.id}>
@@ -178,8 +177,8 @@ const Setting = () => {
                 </TableRow>
               ))}
             </TableBody>
-          )}
-        </Table>
+          </Table>
+        )}
       </div>
     </div>
   );
