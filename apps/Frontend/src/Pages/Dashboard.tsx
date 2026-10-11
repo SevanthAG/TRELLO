@@ -32,9 +32,9 @@ type Organization = {
 };
 
 type Board = {
-  id: number;
+  id: string;
   title: string;
-  organizationId: number;
+  organizationId: string;
 };
 
 const Dashboard = () => {
@@ -126,61 +126,80 @@ const Dashboard = () => {
     getOrganization();
   }, []);
 
+  const handleCreateBoard = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/signin");
+      return;
+    }
+    try {
+      const data = {
+        title,
+      };
+
+      if (!title.trim()) {
+        toast.add({
+          title: "Title required",
+          type: "error",
+        });
+        return;
+      }
+
+      const response = await api.post(`/board/${selectedOrganization}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const newBoard = {
+        id: response.data.newBoard.id,
+        title: response.data.newBoard.title,
+        organizationId: response.data.newBoard.organizationId,
+      };
+      setBoard((prev) => [...prev, newBoard]);
+      setTitle("");
+      toast.add({
+        title: "Board created",
+        type: "success",
+      });
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 409)
+          toast.add({ title: "Board title already exists", type: "error" });
+        else if (err.response?.status === 403)
+          toast.add({ title: "Only ADMIN can create", type: "error" });
+        else toast.add({ title: "Failed to create board", type: "error" });
+      }
+    }
+  };
+
   useEffect(() => {
     if (selectedOrganization === "") {
       return;
     }
     const getBoard = async () => {
       const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/signin");
+        return;
+      }
       try {
-        const response = await axios.get(
-          `http://localhost:3000/api/board/${selectedOrganization}/boards`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        const response = await api.get(`/board/${selectedOrganization}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
+        });
         setBoard(response.data.boards);
       } catch (err) {
-        console.log(err);
+        toast.add({
+          title: "Failed to load boards",
+          type: "error",
+        });
       }
     };
     getBoard();
   }, [selectedOrganization]);
-
-  const handleCreateBoard = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    try {
-      const data = {
-        title,
-      };
-
-      const response = await axios.post(
-        `http://localhost:3000/api/board/${selectedOrganization}/board`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      console.log(response.data);
-
-      const newBoard = {
-        id: response.data.board.id,
-        title: response.data.board.title,
-        organizationId: response.data.organizationId,
-      };
-
-      setBoard([...board, newBoard]);
-
-      // console.log(board);
-    } catch (err) {
-      console.log("Error while Creating Board", err);
-    }
-  };
 
   return (
     <div className="m-5 p-4">
@@ -286,19 +305,23 @@ const Dashboard = () => {
         </Select>
       </div>
 
-      <div>
+      <div className="flex justify-center m-20">
         <Dialog>
           <DialogTrigger
             render={<Button variant="outline">Create Board</Button>}
           />
           <DialogContent className="sm:max-w-sm">
-            <form onSubmit={handleCreateBoard}>
+            <form
+              onSubmit={handleCreateBoard}
+              className="flex flex-col gap-2 m-5"
+            >
               <Input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
               <DialogFooter>
+                <Button type="submit">Create Board</Button>
                 <DialogClose
                   render={
                     <Button variant="outline" type="button">
@@ -306,25 +329,31 @@ const Dashboard = () => {
                     </Button>
                   }
                 />
-                <Button type="submit">Create Board</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {board.map((board) => (
-        <Card
-          size="sm"
-          className="mx-auto w-full max-w-xs"
-          onClick={() => {
-            navigate(`/organization/${board.organizationId}/board/${board.id}`);
-          }}
-          key={board.id}
-        >
-          <CardTitle>{board.title}</CardTitle>
-        </Card>
-      ))}
+      {!selectedOrganization ? (
+        <p className="text-center">Select an organization to see boards</p>
+      ) : board.length === 0 ? (
+        <p className="text-center">No boards yet — click Create Board</p>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {board.map((board) => (
+            <Card
+              key={board.id}
+              onClick={() =>
+                navigate(`/organization/${board.organizationId}/board/${board.id}`)
+              }
+              className="cursor-pointer hover:shadow-md p-4"
+            >
+              <CardTitle>{board.title}</CardTitle>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
