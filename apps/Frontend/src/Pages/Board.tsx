@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
+import { Plus } from "lucide-react";
 
 type Section = {
   id: string;
@@ -33,7 +34,6 @@ const Board = () => {
   const [section, setSection] = useState<Section[]>([]);
 
   const [issue, setIssue] = useState<Issue[]>([]);
-
   const [issueTittle, setIssueTittle] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
 
@@ -87,95 +87,105 @@ const Board = () => {
   useEffect(() => {
     const getSection = async () => {
       const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/signin");
+        return;
+      }
 
       try {
-        const response = await axios.get(
-          `http://localhost:3000/api/board/${boardId}/sections`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        const response = await api.get(`/section/${boardId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
-
-        const data = response.data;
-
-        setSection(data.sections);
+        });
+        setSection(response.data.sections);
       } catch (err) {
-        console.log(err);
+        toast.add({
+          title: "Failed to load sections",
+          type: "error",
+        });
       }
     };
-
     getSection();
   }, [boardId]);
 
-  useEffect(() => {
-    const getIssues = async () => {
-      const token = localStorage.getItem("token");
-
-      try {
-        const allIssues: Issue[] = [];
-
-        for (const currentSection of section) {
-          const response = await axios.get(
-            `http://localhost:3000/api/board/${boardId}/sections/${currentSection.id}/issues`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          const data = response.data;
-
-          console.log("ISSUE RESPONSE:", data);
-
-          allIssues.push(...data.Issue);
-        }
-
-        setIssue(allIssues);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-
-    if (section.length > 0) {
-      getIssues();
-    }
-  }, [section, boardId]);
-
   const handleCreateIssue = async (
     e: React.FormEvent<HTMLFormElement>,
-    sectionId: number,
+    sectionId: string,
   ) => {
     e.preventDefault();
 
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/signin");
+        return;
+      }
 
       const data = {
         title: issueTittle,
         description: issueDescription,
       };
 
-      const response = await axios.post(
-        `http://localhost:3000/api/board/${boardId}/sections/${sectionId}/issue`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      if (!issueTittle.trim() || !issueDescription.trim()) {
+        toast.add({
+          title: "Title and description Needed",
+          type: "error",
+        });
+        return;
+      }
+
+      const response = await api.post(`/issue/${sectionId}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
-      setIssue((prev) => [...prev, response.data.issue]);
+      setIssue((prev) => [...prev, response.data.newIssue]);
 
+      toast.add({
+        title: "Issue Added",
+        type: "success",
+      });
       setIssueTittle("");
       setIssueDescription("");
     } catch (err) {
-      console.log("Error While creating Issue", err);
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 400)
+          toast.add({ title: "Title and description required", type: "error" });
+        else if (err.response?.status === 404)
+          toast.add({ title: "Section not found", type: "error" });
+        else if (err.response?.status === 403)
+          toast.add({ title: "Not a member of this board", type: "error" });
+        else if (err.response?.status === 401)
+          toast.add({ title: "Session expired — signin again", type: "error" });
+        else toast.add({ title: "Failed to create issue", type: "error" });
+      } else toast.add({ title: "Failed to create issue", type: "error" });
     }
   };
+
+  useEffect(() => {
+    const getIssues = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/signin");
+        return;
+      }
+
+      try {
+        const response = await api.get(`/issue/board/${boardId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setIssue(response.data.issues);
+      } catch (err) {
+        toast.add({ title: "Failed to load issues", type: "error" });
+      }
+    };
+
+    getIssues();
+  }, [boardId]);
 
   return (
     <div>
@@ -183,7 +193,12 @@ const Board = () => {
         <div>
           <Dialog>
             <DialogTrigger
-              render={<Button variant="outline">Create Section</Button>}
+              render={
+                <Button variant="outline">
+                  {" "}
+                  <Plus /> Create Section
+                </Button>
+              }
             />
 
             <DialogContent className="sm:max-w-sm">
@@ -211,70 +226,68 @@ const Board = () => {
         </div>
       </div>
 
-      <div className="flex gap-4 mt-6 overflow-x-auto">
-        {section.map((item) => (
-          <div
-            key={item.id}
-            className="w-72 min-w-72 rounded-lg border bg-muted p-4"
-          >
-            <h2 className="font-semibold text-lg">{item.title}</h2>
-
-            <div className="mt-4 space-y-2">
-              {issue
-                .filter((currentIssue) => currentIssue.sectionId === item.id)
-                .map((currentIssue) => (
-                  <div
-                    key={currentIssue.id}
-                    className="rounded-md border bg-background p-3"
-                  >
-                    <h3 className="font-medium">{currentIssue.title}</h3>
-
-                    <p className="text-sm text-muted-foreground">
-                      {currentIssue.description}
-                    </p>
-                  </div>
-                ))}
-            </div>
-
-            <div className="mt-4">
-              <Dialog>
-                <DialogTrigger
-                  render={<Button variant="outline">Create Issue</Button>}
-                />
-
-                <DialogContent className="sm:max-w-sm">
-                  <form onSubmit={(e) => handleCreateIssue(e, item.id)}>
-                    <Input
-                      type="text"
-                      value={issueTittle}
-                      onChange={(e) => setIssueTittle(e.target.value)}
-                      placeholder="Issue title"
-                    />
-
-                    <Input
-                      type="text"
-                      value={issueDescription}
-                      onChange={(e) => setIssueDescription(e.target.value)}
-                      placeholder="Issue description"
-                    />
-
-                    <DialogFooter>
-                      <DialogClose
+      <div>
+        {section.length === 0 ? (
+          <p>No sections yet</p>
+        ) : (
+          <div className="flex justify-evenly">
+            {section.map((item) => (
+              <div>
+                <div key={item.id} className="flex gap-5">
+                  <h2>{item.title}</h2>
+                  <div>
+                    <Dialog>
+                      <DialogTrigger
                         render={
-                          <Button variant="outline" type="button">
-                            Cancel
+                          <Button variant="outline">
+                            <Plus />
+                            Add Issue
                           </Button>
                         }
                       />
-
-                      <Button type="submit">Create Issue</Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
+                      <DialogContent className="sm:max-w-sm">
+                        <form onSubmit={(e) => handleCreateIssue(e, item.id)}>
+                          <Input
+                            value={issueTittle}
+                            onChange={(e) => setIssueTittle(e.target.value)}
+                            placeholder="Issue title"
+                          />
+                          <Input
+                            value={issueDescription}
+                            onChange={(e) =>
+                              setIssueDescription(e.target.value)
+                            }
+                            placeholder="Issue description"
+                          />
+                          <DialogFooter>
+                            <Button type="submit">Create Issue</Button>
+                            <DialogClose
+                              render={
+                                <Button variant="outline" type="button">
+                                  Cancel
+                                </Button>
+                              }
+                            />
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+                <div>
+                  {issue
+                    .filter((c) => c.sectionId === item.id)
+                    .map((c) => (
+                      <div key={c.id} className="border ">
+                        <h3>Title: {c.title}</h3>
+                        <p>Description: {c.description}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
