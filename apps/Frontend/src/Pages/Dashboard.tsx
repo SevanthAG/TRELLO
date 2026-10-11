@@ -187,49 +187,68 @@ const Dashboard = () => {
       <div className="flex justify-between w-full">
         <h1 className="text-5xl">Dashboard</h1>
 
-        <div>
-          <Dialog>
-            <DialogTrigger
-              render={
-                <Button variant="outline">
-                  <Plus />
-                  Create Organization
-                </Button>
-              }
-            />
+        <div className="flex gap-1.5">
+          <div>
+            <Dialog>
+              <DialogTrigger
+                render={
+                  <Button variant="outline">
+                    <Plus />
+                    Create Organization
+                  </Button>
+                }
+              />
 
-            <DialogContent className="sm:max-w-sm">
-              <form
-                onSubmit={handleCreateOrganization}
-                className="flex flex-col gap-3 m-5"
-              >
-                <Label>Organization Name: </Label>
-                <Input
-                  type="text"
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                />
-
-                <Label>Organization Description: </Label>
-                <Input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-
-                <DialogFooter>
-                  <Button type="submit">Create Organization</Button>
-                  <DialogClose
-                    render={
-                      <Button variant="outline" type="button">
-                        Cancel
-                      </Button>
-                    }
+              <DialogContent className="sm:max-w-sm">
+                <form
+                  onSubmit={handleCreateOrganization}
+                  className="flex flex-col gap-3 m-5"
+                >
+                  <Label>Organization Name: </Label>
+                  <Input
+                    type="text"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
                   />
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+
+                  <Label>Organization Description: </Label>
+                  <Input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+
+                  <DialogFooter>
+                    <Button type="submit">Create Organization</Button>
+                    <DialogClose
+                      render={
+                        <Button variant="outline" type="button">
+                          Cancel
+                        </Button>
+                      }
+                    />
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Button
+            disabled={!selectedOrganization}
+            onClick={() => {
+              if (!selectedOrganization) {
+                toast.add({
+                  title: "Select an organization First",
+                  type: "error",
+                });
+
+                return;
+              }
+              navigate(`/organization/${selectedOrganization}/settings`);
+            }}
+          >
+            Settings
+          </Button>
         </div>
       </div>
 
@@ -244,16 +263,21 @@ const Dashboard = () => {
         >
           <SelectTrigger className="w-80 text-2xl">
             <SelectValue placeholder="Select Organization">
-              {organization.find(org => org.id === selectedOrganization)?.name}
-              </SelectValue>
+              {
+                organization.find((org) => org.id === selectedOrganization)
+                  ?.name
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {organization.length === 0 && (
-              <p className="text-md p-5 text-center">No organizations — create one above</p>
+              <p className="text-md p-5 text-center">
+                No organizations — create one above
+              </p>
             )}
             <SelectGroup>
               {organization.map((org) => (
-                <SelectItem key={org.id} value={org.id} >
+                <SelectItem key={org.id} value={org.id}>
                   {org.name}
                 </SelectItem>
               ))}
@@ -261,14 +285,6 @@ const Dashboard = () => {
           </SelectContent>
         </Select>
       </div>
-
-      <Button
-        onClick={() => {
-          navigate(`/organization/${selectedOrganization}/settings`);
-        }}
-      >
-        Settings
-      </Button>
 
       <div>
         <Dialog>
