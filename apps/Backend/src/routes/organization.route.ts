@@ -100,65 +100,6 @@ orgRoute.get("/", async (req, res) => {
   }
 });
 
-orgRoute.get("/:orgId", async (req, res) => {
-  try {
-    const userId = req.userId;
-    const { orgId } = req.params;
-
-    if (!userId) {
-      return res.status(401).json({
-        message: "Unauthorized",
-      });
-    }
-
-    if (!orgId) {
-      return res.status(400).json({
-        message: "OrgId is required",
-      });
-    }
-
-    const organization = await prisma.organization.findFirst({
-      where: {
-        id: orgId,
-      },
-    });
-
-    if (!organization) {
-      return res.status(404).json({
-        message: "Organization Not Found",
-      });
-    }
-
-    const membership = await prisma.membership.findFirst({
-      where: {
-        userId: userId,
-        organizationId: orgId,
-      },
-    });
-
-    if (!membership) {
-      return res.status(403).json({
-        message: "You are not the member of the Organizatione",
-      });
-    }
-
-    return res.status(200).json({
-      message: "Organization fetched successfully",
-      organization: {
-        id: organization.id,
-        name: organization.name,
-        description: organization.description,
-        role: membership.role,
-      },
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({
-      message: "Internal server Error",
-    });
-  }
-});
-
 orgRoute.patch("/:orgId", async (req, res) => {
   try {
     const userId = req.userId;

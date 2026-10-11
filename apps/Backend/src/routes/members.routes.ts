@@ -6,7 +6,7 @@ const memberRoute = Router();
 memberRoute.post("/:orgId", async (req, res) => {
   try {
     const userId = req.userId;
-    const { orgId } = req.params
+    const { orgId } = req.params;
 
     const { email, role } = req.body;
 
@@ -75,12 +75,12 @@ memberRoute.post("/:orgId", async (req, res) => {
     });
 
     return res.status(201).json({
-        message: "Membership Created Successfully,",
-        member : {
-          id: user.id,
-          email: user.email,
-          role: newMembership.role
-        }
+      message: "Membership Created Successfully,",
+      member: {
+        id: user.id,
+        email: user.email,
+        role: newMembership.role,
+      },
     });
   } catch (err) {
     console.log(err);
@@ -90,10 +90,9 @@ memberRoute.post("/:orgId", async (req, res) => {
   }
 });
 
-
-memberRoute.get('/:orgId', async (req, res) => {
+memberRoute.get("/:orgId", async (req, res) => {
   const userId = req.userId;
-  const { orgId } = req.params
+  const { orgId } = req.params;
 
   if (!userId) {
     return res.status(401).json({
@@ -132,5 +131,6 @@ memberRoute.get('/:orgId', async (req, res) => {
     })),
   });
 });
+
 
 export default memberRoute;

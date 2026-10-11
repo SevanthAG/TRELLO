@@ -201,17 +201,6 @@ const Dashboard = () => {
     getBoard();
   }, [selectedOrganization]);
 
-  const updateOrganization = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
-    try {
-      
-    } catch (err) {}
-  };
   return (
     <div className="m-5 p-4">
       <div className="flex justify-between w-full">

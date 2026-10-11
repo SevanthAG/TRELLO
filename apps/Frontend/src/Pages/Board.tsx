@@ -37,7 +37,31 @@ const Board = () => {
   const [issueTittle, setIssueTittle] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
 
+  const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(
+    null,
+  );
+  const [editSectionTitle, setEditSectionTitle] = useState("");
+
+  const [issueDialogOpen, setIssueDialogOpen] = useState(false);
+  const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+  const [editIssueTitle, setEditIssueTitle] = useState("");
+  const [editIssueDescription, setEditIssueDescription] = useState("");
+
   const navigate = useNavigate();
+
+  const openEditSection = (s: Section) => {
+    setEditingSectionId(s.id);
+    setEditSectionTitle(s.title);
+    setSectionDialogOpen(true);
+  };
+
+  const openEditIssue = (i: Issue) => {
+    setEditingIssue(i);
+    setEditIssueTitle(i.title);
+    setEditIssueDescription(i.description);
+    setIssueDialogOpen(true);
+  };
 
   const handleCreateSection = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -164,6 +188,121 @@ const Board = () => {
     }
   };
 
+  const handleUpdateSection = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/signin");
+        return;
+      }
+
+      if (!editingSectionId) return;
+
+      if (!editSectionTitle.trim()) {
+        toast.add({
+          title: "Title Required",
+          type: "error",
+        });
+        return;
+      }
+
+      const response = await api.patch(
+        `/section/${boardId}/${editingSectionId}`,
+        { title: editSectionTitle.trim() },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const updatedTitle = response.data.updatedSection.title;
+
+      setSection((prev) =>
+        prev.map((s) =>
+          s.id === editingSectionId ? { ...s, title: updatedTitle } : s,
+        ),
+      );
+
+      toast.add({
+        title: "Section Updated",
+        type: "success",
+      });
+      setSectionDialogOpen(false);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 403)
+          toast.add({
+            title: "Only ADMIN can update sections",
+            type: "error",
+          });
+        else if (err.response?.status === 404)
+          toast.add({ title: "Section not found", type: "error" });
+        else toast.add({ title: "Failed to update section", type: "error" });
+      } else toast.add({ title: "Failed to update section", type: "error" });
+    }
+  };
+
+  const handleUpdateIssue = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/signin");
+        return;
+      }
+
+      if (!editingIssue) return;
+
+      const data: { title?: string; description?: string } = {};
+
+      if (editIssueTitle.trim()) data.title = editIssueTitle.trim();
+      if (editIssueDescription.trim())
+        data.description = editIssueDescription.trim();
+
+      if (!data.title && !data.description) {
+        toast.add({
+          title: "At least one field is required",
+          type: "error",
+        });
+        return;
+      }
+
+      await api.patch(
+        `/issue/${editingIssue.sectionId}/${editingIssue.id}`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      setIssue((prev) =>
+        prev.map((i) => (i.id === editingIssue.id ? { ...i, ...data } : i)),
+      );
+
+      toast.add({
+        title: "Issue Updated",
+        type: "success",
+      });
+      setIssueDialogOpen(false);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 403)
+          toast.add({ title: "Not a member of this board", type: "error" });
+        else if (err.response?.status === 404)
+          toast.add({ title: "Issue not found", type: "error" });
+        else toast.add({ title: "Failed to update issue", type: "error" });
+      } else toast.add({ title: "Failed to update issue", type: "error" });
+    }
+  };
+
   useEffect(() => {
     const getIssues = async () => {
       const token = localStorage.getItem("token");
@@ -224,6 +363,62 @@ const Board = () => {
             </DialogContent>
           </Dialog>
         </div>
+
+        <div>
+          <Dialog open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <form className="m-5" onSubmit={handleUpdateSection}>
+                <Input
+                  type="text"
+                  value={editSectionTitle}
+                  onChange={(e) => setEditSectionTitle(e.target.value)}
+                  placeholder="Section title"
+                />
+
+                <DialogFooter>
+                  <Button type="submit">Save</Button>
+                  <DialogClose
+                    render={
+                      <Button variant="outline" type="button">
+                        Cancel
+                      </Button>
+                    }
+                  />
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div>
+          <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <form className="m-5" onSubmit={handleUpdateIssue}>
+                <Input
+                  value={editIssueTitle}
+                  onChange={(e) => setEditIssueTitle(e.target.value)}
+                  placeholder="Issue title"
+                />
+                <Input
+                  value={editIssueDescription}
+                  onChange={(e) => setEditIssueDescription(e.target.value)}
+                  placeholder="Issue description"
+                />
+
+                <DialogFooter>
+                  <Button type="submit">Save</Button>
+                  <DialogClose
+                    render={
+                      <Button variant="outline" type="button">
+                        Cancel
+                      </Button>
+                    }
+                  />
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div>
@@ -232,9 +427,15 @@ const Board = () => {
         ) : (
           <div className="flex justify-evenly">
             {section.map((item) => (
-              <div>
-                <div key={item.id} className="flex gap-5">
+              <div key={item.id}>
+                <div className="flex gap-5">
                   <h2>{item.title}</h2>
+                  <Button
+                    variant="outline"
+                    onClick={() => openEditSection(item)}
+                  >
+                    Edit
+                  </Button>
                   <div>
                     <Dialog>
                       <DialogTrigger
@@ -281,6 +482,12 @@ const Board = () => {
                       <div key={c.id} className="border ">
                         <h3>Title: {c.title}</h3>
                         <p>Description: {c.description}</p>
+                        <Button
+                          variant="outline"
+                          onClick={() => openEditIssue(c)}
+                        >
+                          Edit
+                        </Button>
                       </div>
                     ))}
                 </div>

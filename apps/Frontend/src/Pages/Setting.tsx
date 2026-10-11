@@ -22,6 +22,15 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 
 type Member = {
   id: string;
@@ -31,6 +40,9 @@ type Member = {
 
 const Setting = () => {
   const { orgId } = useParams();
+  const [orgName, setOrgName] = useState("");
+  const [description, setDescription] = useState("");
+
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("MEMBER");
 
@@ -42,6 +54,63 @@ const Setting = () => {
     { label: "ADMIN", value: "ADMIN" },
     { label: "MEMBER", value: "MEMBER" },
   ];
+
+  const handleUpdateOrganization = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/signin");
+      return;
+    }
+    if (!orgName.trim() && !description.trim()) {
+      toast.add({
+        title: "At least one field is required",
+        type: "error",
+      });
+      return;
+    }
+
+    try {
+      const data: { orgName?: string; description?: string } = {};
+
+      if (orgName.trim()) data.orgName = orgName.trim();
+      if (description.trim()) data.description = description.trim();
+
+      await api.patch(`/organization/${orgId}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      toast.add({
+        title: "Organization updated successfully",
+        type: "success",
+      });
+
+      setOrgName("");
+      setDescription("");
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 403)
+          toast.add({
+            title: "Only ADMIN can update",
+            type: "error",
+          });
+        else if (err.response?.status === 404)
+          toast.add({
+            title: "Organization not found",
+            type: "error",
+          });
+        else
+          toast.add({
+            title: "Failed to update organization",
+            type: "error",
+          });
+      }
+    }
+  };
 
   const handleAddmember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -118,6 +187,54 @@ const Setting = () => {
   return (
     <div className="p-6 flex flex-col gap-5">
       <h1>Organization Settings</h1>
+
+      <div className="flex gap-1.5">
+        <div>
+          <Dialog>
+            <DialogTrigger
+              render={
+                <Button variant="outline">
+                  <Plus />
+                  Update Organization
+                </Button>
+              }
+            />
+
+            <DialogContent className="sm:max-w-sm">
+              <form
+                onSubmit={handleUpdateOrganization}
+                className="flex flex-col gap-3 m-5"
+              >
+                <Label>Organization Name: </Label>
+                <Input
+            value={orgName}
+            onChange={(e) => setOrgName(e.target.value)}
+            placeholder="New organization name"
+          />
+    
+
+                <Label>Organization Description: </Label>
+                <Input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="New description"
+          />
+
+                <DialogFooter>
+                  <Button type="submit">Update Organization</Button>
+                  <DialogClose
+                    render={
+                      <Button variant="outline" type="button">
+                        Cancel
+                      </Button>
+                    }
+                  />
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
 
       <h3>Add Members</h3>
       <Card className="border rounded-md">
