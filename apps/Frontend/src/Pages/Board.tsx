@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import {
   Dialog,
   DialogClose,
@@ -10,58 +10,79 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { api } from "@/lib/api";
+import { toast } from "@/components/ui/toast";
+
+type Section = {
+  id: string;
+  title: string;
+  boardId: string;
+};
+
+type Issue = {
+  id: string;
+  title: string;
+  description: string;
+  sectionId: string;
+};
 
 const Board = () => {
-  type Section = {
-    id: number;
-    title: string;
-    boardId: number;
-  };
+  const { boardId } = useParams();
 
-  type Issue = {
-    id: number;
-    title: string;
-    description: string;
-    sectionId: number;
-  };
-
-  const { orgId, boardId } = useParams();
-
-  const [boardTitle, setBoardTitle] = useState("");
-  const [title, setTitle] = useState("");
-
+  const [sectionTitle, setSectionTitle] = useState("");
   const [section, setSection] = useState<Section[]>([]);
+
   const [issue, setIssue] = useState<Issue[]>([]);
 
   const [issueTittle, setIssueTittle] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
 
- 
-  useEffect(() => {
-    const getBoardById = async () => {
+  const navigate = useNavigate();
+
+  const handleCreateSection = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
       const token = localStorage.getItem("token");
-
-      try {
-        const response = await axios.get(
-          `http://localhost:3000/api/board?orgId=${orgId}&boardId=${boardId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = response.data.board;
-
-        setBoardTitle(data.title);
-      } catch (err) {
-        console.log(err);
+      if (!token) {
+        navigate("/signin");
+        return;
       }
-    };
 
-    getBoardById();
-  }, [boardId, orgId]);
+      const data = {
+        title: sectionTitle,
+      };
 
+      if (!sectionTitle.trim()) {
+        toast.add({
+          title: "Title Required",
+          type: "error",
+        });
+        return;
+      }
+
+      const response = await api.post(`/section/${boardId}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setSection((prev) => [...prev, response.data.newSection]);
+      toast.add({
+        title: "New Section Created",
+        type: "success",
+      });
+      setSectionTitle("");
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 403)
+          toast.add({ title: "Only ADMIN can create sections", type: "error" });
+        else if (err.response?.status === 404)
+          toast.add({ title: "Board not found", type: "error" });
+        else toast.add({ title: "Failed to create section", type: "error" });
+      } else toast.add({ title: "Failed to create section", type: "error" });
+    }
+  };
 
   useEffect(() => {
     const getSection = async () => {
@@ -74,7 +95,7 @@ const Board = () => {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
 
         const data = response.data;
@@ -87,7 +108,6 @@ const Board = () => {
 
     getSection();
   }, [boardId]);
-
 
   useEffect(() => {
     const getIssues = async () => {
@@ -103,7 +123,7 @@ const Board = () => {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
-            }
+            },
           );
 
           const data = response.data;
@@ -124,43 +144,9 @@ const Board = () => {
     }
   }, [section, boardId]);
 
-
-  const handleCreateSection = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const data = {
-        title: title,
-      };
-
-      const response = await axios.post(
-        `http://localhost:3000/api/board/${boardId}/sections`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setSection((prev) => [
-        ...prev,
-        response.data.section,
-      ]);
-
-      setTitle("");
-    } catch (err) {
-      console.log("Error While creating Section", err);
-    }
-  };
-
   const handleCreateIssue = async (
     e: React.FormEvent<HTMLFormElement>,
-    sectionId: number
+    sectionId: number,
   ) => {
     e.preventDefault();
 
@@ -179,14 +165,10 @@ const Board = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
-
-      setIssue((prev) => [
-        ...prev,
-        response.data.issue,
-      ]);
+      setIssue((prev) => [...prev, response.data.issue]);
 
       setIssueTittle("");
       setIssueDescription("");
@@ -197,45 +179,31 @@ const Board = () => {
 
   return (
     <div>
-      <div className="flex gap-1.5 justify-between">
-        <h1>{boardTitle}</h1>
-
+      <div className="flex gap-1.5 justify-center m-5">
         <div>
           <Dialog>
             <DialogTrigger
-              render={
-                <Button variant="outline">
-                  Create Section
-                </Button>
-              }
+              render={<Button variant="outline">Create Section</Button>}
             />
 
             <DialogContent className="sm:max-w-sm">
-              <form onSubmit={handleCreateSection}>
+              <form className="m-5" onSubmit={handleCreateSection}>
                 <Input
                   type="text"
-                  value={title}
-                  onChange={(e) =>
-                    setTitle(e.target.value)
-                  }
+                  value={sectionTitle}
+                  onChange={(e) => setSectionTitle(e.target.value)}
                   placeholder="Section title"
                 />
 
                 <DialogFooter>
+                  <Button type="submit">Create Section</Button>
                   <DialogClose
                     render={
-                      <Button
-                        variant="outline"
-                        type="button"
-                      >
+                      <Button variant="outline" type="button">
                         Cancel
                       </Button>
                     }
                   />
-
-                  <Button type="submit">
-                    Create Section
-                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -249,24 +217,17 @@ const Board = () => {
             key={item.id}
             className="w-72 min-w-72 rounded-lg border bg-muted p-4"
           >
-            <h2 className="font-semibold text-lg">
-              {item.title}
-            </h2>
+            <h2 className="font-semibold text-lg">{item.title}</h2>
 
             <div className="mt-4 space-y-2">
               {issue
-                .filter(
-                  (currentIssue) =>
-                    currentIssue.sectionId === item.id
-                )
+                .filter((currentIssue) => currentIssue.sectionId === item.id)
                 .map((currentIssue) => (
                   <div
                     key={currentIssue.id}
                     className="rounded-md border bg-background p-3"
                   >
-                    <h3 className="font-medium">
-                      {currentIssue.title}
-                    </h3>
+                    <h3 className="font-medium">{currentIssue.title}</h3>
 
                     <p className="text-sm text-muted-foreground">
                       {currentIssue.description}
@@ -278,54 +239,35 @@ const Board = () => {
             <div className="mt-4">
               <Dialog>
                 <DialogTrigger
-                  render={
-                    <Button variant="outline">
-                      Create Issue
-                    </Button>
-                  }
+                  render={<Button variant="outline">Create Issue</Button>}
                 />
 
                 <DialogContent className="sm:max-w-sm">
-                  <form
-                    onSubmit={(e) =>
-                      handleCreateIssue(e, item.id)
-                    }
-                  >
+                  <form onSubmit={(e) => handleCreateIssue(e, item.id)}>
                     <Input
                       type="text"
                       value={issueTittle}
-                      onChange={(e) =>
-                        setIssueTittle(e.target.value)
-                      }
+                      onChange={(e) => setIssueTittle(e.target.value)}
                       placeholder="Issue title"
                     />
 
                     <Input
                       type="text"
                       value={issueDescription}
-                      onChange={(e) =>
-                        setIssueDescription(
-                          e.target.value
-                        )
-                      }
+                      onChange={(e) => setIssueDescription(e.target.value)}
                       placeholder="Issue description"
                     />
 
                     <DialogFooter>
                       <DialogClose
                         render={
-                          <Button
-                            variant="outline"
-                            type="button"
-                          >
+                          <Button variant="outline" type="button">
                             Cancel
                           </Button>
                         }
                       />
 
-                      <Button type="submit">
-                        Create Issue
-                      </Button>
+                      <Button type="submit">Create Issue</Button>
                     </DialogFooter>
                   </form>
                 </DialogContent>
