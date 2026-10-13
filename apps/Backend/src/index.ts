@@ -6,8 +6,6 @@ import orgRoute from "./routes/organization.route";
 import { authmiddleware } from "./middleware/authmidleware";
 import memberRoute from "./routes/members.routes";
 import boardRoute from "./routes/boards.route";
-import sectionRouter from "./routes/section.route";
-import issueRouter from "./routes/issue.route";
 
 const app = express();
 
@@ -30,8 +28,6 @@ app.use("/api/auth", authRoute);
 app.use("/api/organization",authmiddleware, orgRoute);
 app.use("/api/member", authmiddleware, memberRoute)
 app.use("/api/board", authmiddleware, boardRoute);
-app.use("/api/section", authmiddleware, sectionRouter)
-app.use("/api/issue", authmiddleware, issueRouter)
 
 
 app.listen(3000, () => {
