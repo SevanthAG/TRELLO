@@ -7,15 +7,21 @@ import { deleteIssue, deleteSection, moveIssue } from "./lib/board-operations";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 if (!JWT_SECRET) throw new Error("JWT_ SECRET is not set");
-
-const port = 8080;
+const port = Number(process.env.PORT) || 8080;
 const httpServer = createServer();
 
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-  },
+  origin: [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    process.env.FRONTEND_URL,
+  ].filter((origin): origin is string => Boolean(origin)),
+  methods: ["GET", "POST"],
+},
 });
+
+
 
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token as string | undefined;

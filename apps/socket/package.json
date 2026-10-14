@@ -3,9 +3,10 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-  "scripts": {
-    "dev":"bun src/index.ts --watch"
-  },
+ "scripts": {
+  "dev": "bun src/index.ts --watch",
+  "start": "bun src/index.ts"
+},
   "devDependencies": {
     "@types/bun": "latest"
   },
