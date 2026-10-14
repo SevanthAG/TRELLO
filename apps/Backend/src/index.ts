@@ -9,11 +9,14 @@ import boardRoute from "./routes/boards.route";
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  process.env.FRONTEND_URL,
+].filter((origin): origin is string => Boolean(origin));
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-  ],
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
@@ -30,6 +33,7 @@ app.use("/api/member", authmiddleware, memberRoute)
 app.use("/api/board", authmiddleware, boardRoute);
 
 
-app.listen(3000, () => {
-  console.log("Server is running...");
+const PORT = Number(process.env.PORT) || 3000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is running on port ${PORT}`);
 });
