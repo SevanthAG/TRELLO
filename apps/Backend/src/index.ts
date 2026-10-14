@@ -9,15 +9,13 @@ import boardRoute from "./routes/boards.route";
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  process.env.FRONTEND_URL,
-].filter((origin): origin is string => Boolean(origin));
-
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  origin: [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://blockboard-psj.vercel.app",
+  ],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
