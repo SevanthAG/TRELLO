@@ -1,303 +1,372 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Link, useParams } from "react-router";
+import { ArrowLeft, Users } from "lucide-react";
 import axios from "axios";
-import { useNavigate, useParams } from "react-router";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { api } from "@/lib/api";
-import { toast } from "@/components/ui/toast";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
   DialogContent,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { api } from "@/lib/api";
+import { toast } from "@/components/ui/toast";
+
+type Organization = {
+  id: string;
+  name: string;
+  description: string;
+};
 
 type Member = {
   id: string;
   email: string;
-  role: string;
+  role: "ADMIN" | "MEMBER";
 };
+
+const isOrganization = (value: unknown): value is Organization =>
+  typeof value === "object" &&
+  value !== null &&
+  "id" in value &&
+  typeof value.id === "string" &&
+  "name" in value &&
+  typeof value.name === "string" &&
+  "description" in value &&
+  typeof value.description === "string";
+
+const isMember = (value: unknown): value is Member =>
+  typeof value === "object" &&
+  value !== null &&
+  "id" in value &&
+  typeof value.id === "string" &&
+  "email" in value &&
+  typeof value.email === "string" &&
+  "role" in value &&
+  (value.role === "ADMIN" || value.role === "MEMBER");
 
 const Setting = () => {
   const { orgId } = useParams();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [orgName, setOrgName] = useState("");
   const [description, setDescription] = useState("");
-
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("MEMBER");
+  const [role, setRole] = useState<Member["role"]>("MEMBER");
+  const [editOpen, setEditOpen] = useState(false);
+  const [savingOrganization, setSavingOrganization] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
 
-  const [member, setMember] = useState<Member[]>([]);
+  const loadSettings = useCallback(async () => {
+    if (!orgId) return;
+    setLoadError(false);
+    try {
+      const [organizationResponse, memberResponse] = await Promise.all([
+        api.get<{ organizations: Organization[] }>("/organization"),
+        api.get<{ membership: Member[] }>(`/member/${orgId}`),
+      ]);
+      if (
+        !Array.isArray(organizationResponse.data.organizations) ||
+        !organizationResponse.data.organizations.every(isOrganization) ||
+        !Array.isArray(memberResponse.data.membership) ||
+        !memberResponse.data.membership.every(isMember)
+      ) {
+        throw new Error("Invalid organization settings response");
+      }
+      const currentOrganization = organizationResponse.data.organizations.find(
+        (item) => item.id === orgId,
+      );
+      if (!currentOrganization) {
+        setLoadError(true);
+        toast.add({
+          title: "Organization not found in your workspaces",
+          type: "error",
+        });
+        return;
+      }
+      setOrganization(currentOrganization);
+      setMembers(memberResponse.data.membership);
+    } catch {
+      setLoadError(true);
+      toast.add({
+        title: "Could not load organization settings",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId]);
 
-  const navigate = useNavigate();
-
-  const items = [
-    { label: "ADMIN", value: "ADMIN" },
-    { label: "MEMBER", value: "MEMBER" },
-  ];
+  useEffect(() => {
+    void Promise.resolve().then(loadSettings);
+  }, [loadSettings]);
 
   const handleUpdateOrganization = async (
-    e: React.FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>,
   ) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
-    if (!orgName.trim() && !description.trim()) {
+    event.preventDefault();
+    if (!orgId || savingOrganization) return;
+    const nextName = orgName.trim();
+    const nextDescription = description.trim();
+    if (!nextName && !nextDescription) {
       toast.add({
-        title: "At least one field is required",
+        title: "Enter a name or description to update",
         type: "error",
       });
       return;
     }
 
+    setSavingOrganization(true);
     try {
-      const data: { orgName?: string; description?: string } = {};
-
-      if (orgName.trim()) data.orgName = orgName.trim();
-      if (description.trim()) data.description = description.trim();
-
-      await api.patch(`/organization/${orgId}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await api.patch<{ updatedOrganization: Organization }>(
+        `/organization/${orgId}`,
+        {
+          ...(nextName ? { orgName: nextName } : {}),
+          ...(nextDescription ? { description: nextDescription } : {}),
         },
-      });
-
-      toast.add({
-        title: "Organization updated successfully",
-        type: "success",
-      });
-
+      );
+      if (!isOrganization(response.data.updatedOrganization)) {
+        throw new Error("Invalid organization update response");
+      }
+      setOrganization(response.data.updatedOrganization);
       setOrgName("");
       setDescription("");
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 403)
-          toast.add({
-            title: "Only ADMIN can update",
-            type: "error",
-          });
-        else if (err.response?.status === 404)
-          toast.add({
-            title: "Organization not found",
-            type: "error",
-          });
-        else
-          toast.add({
-            title: "Failed to update organization",
-            type: "error",
-          });
+      setEditOpen(false);
+      toast.add({ title: "Organization updated", type: "success" });
+    } catch (error) {
+      let message = "Could not update organization";
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403)
+          message = "Only organization admins can update settings";
+        if (error.response?.status === 404)
+          message = "Organization no longer exists";
       }
+      toast.add({ title: message, type: "error" });
+    } finally {
+      setSavingOrganization(false);
     }
   };
 
-  const handleAddmember = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
+  const handleAddMember = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!orgId || addingMember) return;
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      toast.add({ title: "Enter an email address", type: "error" });
       return;
     }
+
+    setAddingMember(true);
     try {
-      const data = {
-        email,
+      const response = await api.post<{ member: Member }>(`/member/${orgId}`, {
+        email: normalizedEmail,
         role,
-      };
-
-      if (!email.trim()) {
-        toast.add({
-          title: "Email Required",
-          type: "error",
-        });
-        return;
+      });
+      if (!isMember(response.data.member)) {
+        throw new Error("Invalid membership response");
       }
-
-      const response = await api.post(`/member/${orgId}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setMember((prev) => [...prev, response.data.member]);
-      toast.add({
-        title: "Member Added",
-        type: "success",
-      });
+      setMembers((current) =>
+        current.some((member) => member.id === response.data.member.id)
+          ? current
+          : [...current, response.data.member],
+      );
       setEmail("");
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 404)
-          toast.add({
-            title: "User not found — ask them to signup",
-            type: "error",
-          });
-        else if (err.response?.status === 409)
-          toast.add({ title: "Already a member", type: "error" });
-        else if (err.response?.status === 403)
-          toast.add({ title: "Only ADMIN can add", type: "error" });
-        else toast.add({ title: "Failed to add", type: "error" });
+      toast.add({ title: "Member added", type: "success" });
+    } catch (error) {
+      let message = "Could not add member";
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404)
+          message = "No account found for that email";
+        if (error.response?.status === 409)
+          message = "That person is already a member";
+        if (error.response?.status === 403)
+          message = "Only organization admins can add members";
       }
+      toast.add({ title: message, type: "error" });
+    } finally {
+      setAddingMember(false);
     }
   };
 
-  useEffect(() => {
-    const getMembers = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
-      try {
-        const response = await api.get(`/member/${orgId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setMember(response.data.membership);
-      } catch (err) {
-        toast.add({
-          title: "Failed to load Members",
-          type: "error",
-        });
-      }
-    };
-    getMembers();
-  }, [orgId]);
-
-  return (
-    <div className="p-6 flex flex-col gap-5">
-      <h1>Organization Settings</h1>
-
-      <div className="flex gap-1.5">
-        <div>
-          <Dialog>
-            <DialogTrigger
-              render={
-                <Button variant="outline">
-                  <Plus />
-                  Update Organization
-                </Button>
-              }
-            />
-
-            <DialogContent className="sm:max-w-sm">
-              <form
-                onSubmit={handleUpdateOrganization}
-                className="flex flex-col gap-3 m-5"
-              >
-                <Label>Organization Name: </Label>
-                <Input
-            value={orgName}
-            onChange={(e) => setOrgName(e.target.value)}
-            placeholder="New organization name"
-          />
-    
-
-                <Label>Organization Description: </Label>
-                <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="New description"
-          />
-
-                <DialogFooter>
-                  <Button type="submit">Update Organization</Button>
-                  <DialogClose
-                    render={
-                      <Button variant="outline" type="button">
-                        Cancel
-                      </Button>
-                    }
-                  />
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+  if (loading || organization?.id !== orgId) {
+    return (
+      <main className="page-stack">
+        <div className="state-panel" role="status">
+          Loading organization…
         </div>
-      </div>
+      </main>
+    );
+  }
 
-      <h3>Add Members</h3>
-      <Card className="border rounded-md">
-        <form onSubmit={handleAddmember} className="flex gap-2">
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter member email"
-          />
-          <Select
-            value={role}
-            onValueChange={(value) => {
-              if (value !== null) {
-                setRole(value);
-              }
+  if (loadError || !organization) {
+    return (
+      <main className="page-stack">
+        <div className="state-panel" role="alert">
+          <p>Organization settings could not be loaded.</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setLoading(true);
+              setOrganization(null);
+              void loadSettings();
             }}
           >
-            <SelectTrigger className="w-45">
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {items.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            Try again
+          </Button>
+        </div>
+      </main>
+    );
+  }
 
-          <Button type="submit">Add Member</Button>
+  return (
+    <main className="page-stack settings-page">
+      <header className="page-heading">
+        <div>
+          <Link className="back-link" to="/dashboard">
+            <ArrowLeft aria-hidden="true" />
+            Dashboard
+          </Link>
+          <p className="eyebrow">Workspace settings</p>
+          <h1 className="pixel-heading">{organization.name}</h1>
+          <p className="page-intro">{organization.description}</p>
+        </div>
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogTrigger
+            render={<Button variant="outline">Edit organization</Button>}
+          />
+          <DialogContent className="app-dialog">
+            <DialogHeader>
+              <p className="eyebrow">Workspace details</p>
+              <DialogTitle className="pixel-heading dialog-heading">
+                Edit organization
+              </DialogTitle>
+            </DialogHeader>
+            <form className="form-stack" onSubmit={handleUpdateOrganization}>
+              <div className="field-stack">
+                <Label htmlFor="edit-organization-name">
+                  Organization name
+                </Label>
+                <Input
+                  id="edit-organization-name"
+                  autoFocus
+                  value={orgName}
+                  onChange={(event) => setOrgName(event.target.value)}
+                  placeholder={organization.name}
+                />
+              </div>
+              <div className="field-stack">
+                <Label htmlFor="edit-organization-description">
+                  Description
+                </Label>
+                <Input
+                  id="edit-organization-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder={organization.description}
+                />
+              </div>
+              <p className="field-hint">
+                Leave a field blank to keep its current value.
+              </p>
+              <DialogFooter className="dialog-actions">
+                <DialogClose
+                  render={
+                    <Button variant="outline" type="button">
+                      Cancel
+                    </Button>
+                  }
+                />
+                <Button type="submit" disabled={savingOrganization}>
+                  {savingOrganization ? "Saving…" : "Save changes"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </header>
+
+      <section className="settings-card" aria-labelledby="members-heading">
+        <div className="settings-card-heading">
+          <div className="settings-heading-icon" aria-hidden="true">
+            <Users />
+          </div>
+          <div>
+            <p className="eyebrow">People</p>
+            <h2 id="members-heading" className="section-heading">
+              Members
+            </h2>
+          </div>
+          <span className="member-count">{members.length}</span>
+        </div>
+
+        <form className="member-form" onSubmit={handleAddMember}>
+          <div className="field-stack member-email-field">
+            <Label htmlFor="member-email">Invite by email</Label>
+            <Input
+              id="member-email"
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="teammate@example.com"
+            />
+          </div>
+          <div className="field-stack member-role-field">
+            <Label htmlFor="member-role">Role</Label>
+            <select
+              className="organization-select role-select"
+              id="member-role"
+              value={role}
+              onChange={(event) =>
+                setRole(event.target.value === "ADMIN" ? "ADMIN" : "MEMBER")
+              }
+            >
+              <option value="MEMBER">Member</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+          <Button type="submit" disabled={addingMember}>
+            {addingMember ? "Adding…" : "Add member"}
+          </Button>
         </form>
-      </Card>
 
-      <div>
-        <p>Members Of organization</p>
-
-        {member.length === 0 ? (
-          <p>No members yet — add one above</p>
+        {members.length === 0 ? (
+          <div className="empty-inline">
+            <Users aria-hidden="true" />
+            <div>
+              <h3>No members yet</h3>
+              <p>Add someone by email to start collaborating.</p>
+            </div>
+          </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-25">UserId</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {member.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>{m.id}</TableCell>
-                  <TableCell>{m.email}</TableCell>
-                  <TableCell>{m.role}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="member-list">
+            <div className="member-list-header" aria-hidden="true">
+              <span>Member</span>
+              <span>Role</span>
+            </div>
+            {members.map((member) => (
+              <div className="member-row" key={member.id}>
+                <span className="member-avatar" aria-hidden="true">
+                  {member.email.slice(0, 1).toUpperCase()}
+                </span>
+                <span className="member-email">{member.email}</span>
+                <span
+                  className={`role-badge role-${member.role.toLowerCase()}`}
+                >
+                  {member.role === "ADMIN" ? "Admin" : "Member"}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

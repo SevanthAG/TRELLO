@@ -1,32 +1,35 @@
-# React + TypeScript + Vite
+# Blockboard frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The frontend is a React 19, TypeScript, and Vite application. It uses React Router for client-side routes, Axios for the Express API, and Socket.IO for board sections and issue updates.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Start each service in its own terminal:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+cd apps/Backend
+bun run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+```sh
+cd apps/socket
+bun run dev
+```
+
+```sh
+cd apps/Frontend
+bun run dev
+```
+
+The frontend defaults to `http://localhost:3000/api` for HTTP requests and `http://localhost:8080` for Socket.IO. Override either endpoint with `VITE_API_URL` (including the `/api` prefix) or `VITE_SOCKET_URL` in the frontend environment when needed.
+
+## Existing product scope
+
+Sign-up and sign-in use the backend's `/api/auth` routes. Authenticated workspace screens use the existing organization, membership, and board endpoints. Sections and issues load and update through the socket service. Issues can be moved within their board, and issue/empty-section deletion is synchronized through Socket.IO. Section deletion is admin-only and requires the section to be empty; existing issues must be moved or deleted first. The backend does not expose issue statuses or member removal, so the interface does not offer those actions.
+
+## Checks
+
+```sh
+bun run build
+bun run lint
+```

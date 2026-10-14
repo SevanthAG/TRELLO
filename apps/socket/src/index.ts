@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 import { prisma } from "db/client";
+import { deleteIssue, deleteSection, moveIssue } from "./lib/board-operations";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 if (!JWT_SECRET) throw new Error("JWT_ SECRET is not set");
@@ -20,7 +21,15 @@ io.use((socket, next) => {
   const token = socket.handshake.auth?.token as string | undefined;
   if (!token) return next(new Error("Token Missing"));
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (
+      typeof decoded !== "object" ||
+      decoded === null ||
+      typeof decoded.userId !== "string" ||
+      !decoded.userId
+    ) {
+      return next(new Error("Invalid token"));
+    }
     socket.data.userId = decoded.userId;
     next();
   } catch {
@@ -31,42 +40,61 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   console.log("Socket Connected");
 
-  socket.on("board:join", async ({ boardId }) => {
-    if (!boardId) {
-      return;
-    }
+  socket.on(
+    "board:join",
+    async (
+      payload,
+      ack?: (response: { error?: string; joined?: boolean }) => void,
+    ) => {
+      const boardId =
+        typeof payload === "object" && payload !== null && "boardId" in payload
+          ? payload.boardId
+          : undefined;
+      if (typeof boardId !== "string" || !boardId) {
+        ack?.({ error: "boardId is required" });
+        return;
+      }
 
-    const userId = socket.data.userId as string;
+      const userId = socket.data.userId as string;
 
-    if (!userId) {
-      return;
-    }
+      if (!userId) {
+        ack?.({ error: "Unauthorized" });
+        return;
+      }
 
-    const board = await prisma.board.findFirst({
-      where: {
-        id: boardId,
-      },
-    });
+      try {
+        const board = await prisma.board.findUnique({
+          where: { id: boardId },
+          select: { organizationId: true },
+        });
+        if (!board) {
+          ack?.({ error: "Board not found" });
+          return;
+        }
 
-    if (!board) {
-      return;
-    }
+        const membership = await prisma.membership.findFirst({
+          where: { userId, organizationId: board.organizationId },
+        });
+        if (!membership) {
+          ack?.({ error: "You are not a member of this organization" });
+          return;
+        }
 
-    const membership = await prisma.membership.findFirst({
-      where: {
-        userId: userId,
-        organizationId: board.organizationId,
-      },
-    });
-
-    if (!membership) {
-      return;
-    }
-
-    socket.join(boardId);
-    console.log(`${socket.id} joined ${boardId}`);
-  });
-
+        const previousBoardId = socket.data.boardId as string | undefined;
+        if (previousBoardId && previousBoardId !== boardId) {
+          await socket.leave(previousBoardId);
+        }
+        await socket.join(boardId);
+        socket.data.boardId = boardId;
+        ack?.({ joined: true });
+      } catch (error) {
+        console.error("Failed to join board room", error);
+        ack?.({ error: "Could not join board" });
+        return;
+      }
+      console.log(`${socket.id} joined ${boardId}`);
+    },
+  );
 
   const requireBoardMember = async (boardId: string) => {
     if (!boardId) return { error: "boardId is required" };
@@ -146,7 +174,9 @@ io.on("connection", (socket) => {
         return ack({ error: "title and description are required" });
       }
 
-      const section = await prisma.section.findFirst({ where: { id: sectionId } });
+      const section = await prisma.section.findFirst({
+        where: { id: sectionId },
+      });
       if (!section) return ack({ error: "Section Not Found" });
 
       const check = await requireBoardMember(section.boardId);
@@ -206,7 +236,9 @@ io.on("connection", (socket) => {
         return ack({ error: "Atleast one Field is required" });
       }
 
-      const existIssue = await prisma.issue.findFirst({ where: { id: issueId } });
+      const existIssue = await prisma.issue.findFirst({
+        where: { id: issueId },
+      });
       if (!existIssue) return ack({ error: "Issue Not Found" });
 
       const section = await prisma.section.findFirst({
@@ -231,6 +263,124 @@ io.on("connection", (socket) => {
     } catch (err) {
       console.log(err);
       ack({ error: "Internal server Error" });
+    }
+  });
+
+  socket.on("issue:move", async (payload, ack) => {
+    if (typeof ack !== "function") return;
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      !("boardId" in payload) ||
+      !("issueId" in payload) ||
+      !("sourceSectionId" in payload) ||
+      !("destinationSectionId" in payload) ||
+      typeof payload.boardId !== "string" ||
+      typeof payload.issueId !== "string" ||
+      typeof payload.sourceSectionId !== "string" ||
+      typeof payload.destinationSectionId !== "string" ||
+      !payload.boardId ||
+      !payload.issueId ||
+      !payload.sourceSectionId ||
+      !payload.destinationSectionId
+    ) {
+      return ack({ error: "Invalid issue move payload" });
+    }
+    if (!socket.rooms.has(payload.boardId)) {
+      return ack({ error: "Join this board before moving issues" });
+    }
+
+    try {
+      const result = await moveIssue({
+        userId: socket.data.userId as string,
+        boardId: payload.boardId,
+        issueId: payload.issueId,
+        sourceSectionId: payload.sourceSectionId,
+        destinationSectionId: payload.destinationSectionId,
+      });
+      if (!result.ok) return ack({ error: result.error });
+
+      io.to(payload.boardId).emit("issue:moved", {
+        boardId: payload.boardId,
+        sourceSectionId: payload.sourceSectionId,
+        destinationSectionId: payload.destinationSectionId,
+        issue: result.value.issue,
+      });
+      return ack({ issue: result.value.issue });
+    } catch (error) {
+      console.error("Failed to move issue", error);
+      return ack({ error: "Could not move issue" });
+    }
+  });
+
+  socket.on("issue:delete", async (payload, ack) => {
+    if (typeof ack !== "function") return;
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      !("boardId" in payload) ||
+      !("issueId" in payload) ||
+      typeof payload.boardId !== "string" ||
+      typeof payload.issueId !== "string" ||
+      !payload.boardId ||
+      !payload.issueId
+    ) {
+      return ack({ error: "Invalid issue delete payload" });
+    }
+    if (!socket.rooms.has(payload.boardId)) {
+      return ack({ error: "Join this board before deleting issues" });
+    }
+
+    try {
+      const result = await deleteIssue({
+        userId: socket.data.userId as string,
+        boardId: payload.boardId,
+        issueId: payload.issueId,
+      });
+      if (!result.ok) return ack({ error: result.error });
+
+      io.to(payload.boardId).emit("issue:deleted", {
+        boardId: payload.boardId,
+        issueId: result.value.issueId,
+      });
+      return ack({ issueId: result.value.issueId });
+    } catch (error) {
+      console.error("Failed to delete issue", error);
+      return ack({ error: "Could not delete issue" });
+    }
+  });
+
+  socket.on("section:delete", async (payload, ack) => {
+    if (typeof ack !== "function") return;
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      !("boardId" in payload) ||
+      !("sectionId" in payload) ||
+      typeof payload.boardId !== "string" ||
+      typeof payload.sectionId !== "string" ||
+      !payload.boardId ||
+      !payload.sectionId
+    ) {
+      return ack({ error: "Invalid section delete payload" });
+    }
+    if (!socket.rooms.has(payload.boardId)) {
+      return ack({ error: "Join this board before deleting sections" });
+    }
+
+    try {
+      const result = await deleteSection({
+        userId: socket.data.userId as string,
+        boardId: payload.boardId,
+        sectionId: payload.sectionId,
+      });
+      if (!result.ok) return ack({ error: result.error });
+
+      io.to(result.value.boardId).emit("section:deleted", result.value);
+      return ack(result.value);
+    } catch (error) {
+      console.error("Failed to delete section", error);
+      return ack({ error: "Could not delete section" });
     }
   });
 

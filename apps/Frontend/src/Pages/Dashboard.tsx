@@ -1,34 +1,26 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
+import { ArrowUpRight, FolderKanban, Plus, Settings2 } from "lucide-react";
+import axios from "axios";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
   DialogContent,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
-import { Plus } from "lucide-react";
-import { Label } from "@/components/ui/label";
 
 type Organization = {
   id: string;
   name: string;
   description: string;
-  role: string;
 };
 
 type Board = {
@@ -37,291 +29,252 @@ type Board = {
   organizationId: string;
 };
 
+const isOrganization = (value: unknown): value is Organization =>
+  typeof value === "object" &&
+  value !== null &&
+  "id" in value &&
+  typeof value.id === "string" &&
+  "name" in value &&
+  typeof value.name === "string" &&
+  "description" in value &&
+  typeof value.description === "string";
+
+const isBoard = (value: unknown): value is Board =>
+  typeof value === "object" &&
+  value !== null &&
+  "id" in value &&
+  typeof value.id === "string" &&
+  "title" in value &&
+  typeof value.title === "string" &&
+  "organizationId" in value &&
+  typeof value.organizationId === "string";
+
 const Dashboard = () => {
-  const [organization, setOrganization] = useState<Organization[]>([]);
-  const [selectedOrganization, setSelectedOrganization] = useState("");
-
-  const [orgName, setOrgName] = useState("");
-  const [description, setDescription] = useState("");
-
-  const [board, setBoard] = useState<Board[]>([]);
-  const [title, setTitle] = useState("");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [organizationsLoading, setOrganizationsLoading] = useState(true);
+  const [organizationsError, setOrganizationsError] = useState(false);
+  const [boardsLoading, setBoardsLoading] = useState(false);
+  const [boardsError, setBoardsError] = useState(false);
+  const [boardsRefresh, setBoardsRefresh] = useState(0);
+  const [organizationDialogOpen, setOrganizationDialogOpen] = useState(false);
+  const [boardDialogOpen, setBoardDialogOpen] = useState(false);
+  const [organizationName, setOrganizationName] = useState("");
+  const [organizationDescription, setOrganizationDescription] = useState("");
+  const [boardTitle, setBoardTitle] = useState("");
+  const [creatingOrganization, setCreatingOrganization] = useState(false);
+  const [creatingBoard, setCreatingBoard] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleCreateOrganization = async (
-    e: React.FormEvent<HTMLFormElement>,
-  ) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
-
+  const loadOrganizations = useCallback(async () => {
     try {
-      const data = {
-        orgName: orgName,
-        description: description,
-      };
-
-      if (!orgName.trim() || !description.trim()) {
-        toast.add({
-          title: "Both Field Are required",
-          description: "Missing orgName or Description",
-          type: "error",
-        });
-        return;
+      const response = await api.get<{ organizations: Organization[] }>(
+        "/organization",
+      );
+      if (
+        !Array.isArray(response.data.organizations) ||
+        !response.data.organizations.every(isOrganization)
+      ) {
+        throw new Error("Invalid organizations response");
       }
-
-      const response = await api.post("/organization", data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const newOrganization = {
-        id: response.data.organization,
-        name: orgName,
-        description: description,
-        role: "ADMIN",
-      };
-
-      setOrganization((prev) => [...prev, newOrganization]);
-
-      toast.add({
-        title: "Organization Created successfully",
-        description: "Created",
-        type: "success",
-      });
-
-      setOrgName("");
-      setDescription("");
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 409)
-        toast.add({ title: "Organization already exists", type: "error" });
-      else toast.add({ title: "Failed to create", type: "error" });
+      setOrganizations(response.data.organizations);
+    } catch {
+      setOrganizationsError(true);
+      toast.add({ title: "Could not load organizations", type: "error" });
+    } finally {
+      setOrganizationsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    const getOrganization = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
-      try {
-        const response = await api.get("/organization", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        setOrganization(response.data.organizations);
-      } catch (err) {
-        toast.add({ title: "Failed to load organizations", type: "error" });
-      }
-    };
-    getOrganization();
   }, []);
 
-  const handleCreateBoard = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
+  useEffect(() => {
+    void Promise.resolve().then(loadOrganizations);
+  }, [loadOrganizations]);
+
+  useEffect(() => {
+    if (!selectedOrganizationId) return;
+
+    let active = true;
+    const loadBoards = async () => {
+      setBoardsLoading(true);
+      try {
+        const response = await api.get<{ boards: Board[] }>(
+          `/board/${selectedOrganizationId}`,
+        );
+        if (
+          !Array.isArray(response.data.boards) ||
+          !response.data.boards.every(isBoard)
+        ) {
+          throw new Error("Invalid boards response");
+        }
+        if (active) setBoards(response.data.boards);
+      } catch {
+        if (active) {
+          setBoardsError(true);
+          toast.add({ title: "Could not load boards", type: "error" });
+        }
+      } finally {
+        if (active) setBoardsLoading(false);
+      }
+    };
+    void loadBoards();
+    return () => {
+      active = false;
+    };
+  }, [selectedOrganizationId, boardsRefresh]);
+
+  const handleCreateOrganization = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    const name = organizationName.trim();
+    const description = organizationDescription.trim();
+    if (creatingOrganization) return;
+    if (!name || !description) {
+      toast.add({
+        title: "Enter an organization name and description",
+        type: "error",
+      });
       return;
     }
+
+    setCreatingOrganization(true);
     try {
-      const data = {
-        title,
-      };
-
-      if (!title.trim()) {
-        toast.add({
-          title: "Title required",
-          type: "error",
-        });
-        return;
-      }
-
-      const response = await api.post(`/board/${selectedOrganization}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await api.post<{ organization: string }>(
+        "/organization",
+        {
+          orgName: name,
+          description,
         },
-      });
-
-      const newBoard = {
-        id: response.data.newBoard.id,
-        title: response.data.newBoard.title,
-        organizationId: response.data.newBoard.organizationId,
-      };
-      setBoard((prev) => [...prev, newBoard]);
-      setTitle("");
-      toast.add({
-        title: "Board created",
-        type: "success",
-      });
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 409)
-          toast.add({ title: "Board title already exists", type: "error" });
-        else if (err.response?.status === 403)
-          toast.add({ title: "Only ADMIN can create", type: "error" });
-        else toast.add({ title: "Failed to create board", type: "error" });
+      );
+      if (
+        typeof response.data.organization !== "string" ||
+        !response.data.organization
+      ) {
+        throw new Error("Invalid organization creation response");
       }
+      const newOrganization = {
+        id: response.data.organization,
+        name,
+        description,
+      };
+      setOrganizations((current) => [...current, newOrganization]);
+      setBoards([]);
+      setBoardsError(false);
+      setSelectedOrganizationId(newOrganization.id);
+      setOrganizationName("");
+      setOrganizationDescription("");
+      setOrganizationDialogOpen(false);
+      toast.add({ title: "Organization created", type: "success" });
+    } catch (error) {
+      const message =
+        axios.isAxiosError(error) && error.response?.status === 409
+          ? "An organization with that name already exists"
+          : "Could not create organization";
+      toast.add({ title: message, type: "error" });
+    } finally {
+      setCreatingOrganization(false);
     }
   };
 
-  useEffect(() => {
-    if (selectedOrganization === "") {
+  const handleCreateBoard = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const title = boardTitle.trim();
+    if (creatingBoard) return;
+    if (!title || !selectedOrganizationId) {
+      toast.add({
+        title: !selectedOrganizationId
+          ? "Choose an organization first"
+          : "Enter a board name",
+        type: "error",
+      });
       return;
     }
-    const getBoard = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/signin");
-        return;
+
+    setCreatingBoard(true);
+    try {
+      const response = await api.post<{ newBoard: Board }>(
+        `/board/${selectedOrganizationId}`,
+        { title },
+      );
+      if (!isBoard(response.data.newBoard)) {
+        throw new Error("Invalid board creation response");
       }
-      try {
-        const response = await api.get(`/board/${selectedOrganization}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setBoard(response.data.boards);
-      } catch (err) {
-        toast.add({
-          title: "Failed to load boards",
-          type: "error",
-        });
+      setBoards((current) => [...current, response.data.newBoard]);
+      setBoardTitle("");
+      setBoardDialogOpen(false);
+      toast.add({ title: "Board created", type: "success" });
+    } catch (error) {
+      let message = "Could not create board";
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 409)
+          message = "That board title is already in use";
+        if (error.response?.status === 403)
+          message = "Only organization admins can create boards";
       }
-    };
-    getBoard();
-  }, [selectedOrganization]);
+      toast.add({ title: message, type: "error" });
+    } finally {
+      setCreatingBoard(false);
+    }
+  };
+
+  const selectedOrganization = organizations.find(
+    (organization) => organization.id === selectedOrganizationId,
+  );
 
   return (
-    <div className="m-5 p-4">
-      <div className="flex justify-between w-full">
-        <h1 className="text-5xl">Dashboard</h1>
-
-        <div className="flex gap-1.5">
-          <div>
-            <Dialog>
-              <DialogTrigger
-                render={
-                  <Button variant="outline">
-                    <Plus />
-                    Create Organization
-                  </Button>
-                }
-              />
-
-              <DialogContent className="sm:max-w-sm">
-                <form
-                  onSubmit={handleCreateOrganization}
-                  className="flex flex-col gap-3 m-5"
-                >
-                  <Label>Organization Name: </Label>
-                  <Input
-                    type="text"
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                  />
-
-                  <Label>Organization Description: </Label>
-                  <Input
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-
-                  <DialogFooter>
-                    <Button type="submit">Create Organization</Button>
-                    <DialogClose
-                      render={
-                        <Button variant="outline" type="button">
-                          Cancel
-                        </Button>
-                      }
-                    />
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <Button
-            disabled={!selectedOrganization}
-            onClick={() => {
-              if (!selectedOrganization) {
-                toast.add({
-                  title: "Select an organization First",
-                  type: "error",
-                });
-
-                return;
-              }
-              navigate(`/organization/${selectedOrganization}/settings`);
-            }}
-          >
-            Settings
-          </Button>
+    <main className="page-stack">
+      <header className="page-heading">
+        <div>
+          <p className="eyebrow">Your workspace</p>
+          <h1 className="pixel-heading">Dashboard</h1>
+          <p className="page-intro">Pick up where your team left off.</p>
         </div>
-      </div>
-
-      <div className="flex justify-center">
-        <Select
-          value={selectedOrganization}
-          onValueChange={(value) => {
-            if (value !== null) {
-              setSelectedOrganization(value);
-            }
-          }}
+        <Dialog
+          open={organizationDialogOpen}
+          onOpenChange={setOrganizationDialogOpen}
         >
-          <SelectTrigger className="w-80 text-2xl">
-            <SelectValue placeholder="Select Organization">
-              {
-                organization.find((org) => org.id === selectedOrganization)
-                  ?.name
-              }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {organization.length === 0 && (
-              <p className="text-md p-5 text-center">
-                No organizations — create one above
-              </p>
-            )}
-            <SelectGroup>
-              {organization.map((org) => (
-                <SelectItem key={org.id} value={org.id}>
-                  {org.name}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex justify-center m-20">
-        <Dialog>
           <DialogTrigger
-            render={<Button variant="outline">Create Board</Button>}
+            render={
+              <Button variant="outline" className="action-button">
+                <Plus aria-hidden="true" />
+                New organization
+              </Button>
+            }
           />
-          <DialogContent className="sm:max-w-sm">
-            <form
-              onSubmit={handleCreateBoard}
-              className="flex flex-col gap-2 m-5"
-            >
-              <Input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-              <DialogFooter>
-                <Button type="submit">Create Board</Button>
+          <DialogContent className="app-dialog">
+            <DialogHeader>
+              <p className="eyebrow">Workspace setup</p>
+              <DialogTitle className="pixel-heading dialog-heading">
+                Create an organization
+              </DialogTitle>
+            </DialogHeader>
+            <form className="form-stack" onSubmit={handleCreateOrganization}>
+              <div className="field-stack">
+                <Label htmlFor="organization-name">Organization name</Label>
+                <Input
+                  id="organization-name"
+                  autoFocus
+                  required
+                  value={organizationName}
+                  onChange={(event) => setOrganizationName(event.target.value)}
+                  placeholder="e.g. Redstone Studio"
+                />
+              </div>
+              <div className="field-stack">
+                <Label htmlFor="organization-description">Description</Label>
+                <Input
+                  id="organization-description"
+                  required
+                  value={organizationDescription}
+                  onChange={(event) =>
+                    setOrganizationDescription(event.target.value)
+                  }
+                  placeholder="What is this team working on?"
+                />
+              </div>
+              <DialogFooter className="dialog-actions">
                 <DialogClose
                   render={
                     <Button variant="outline" type="button">
@@ -329,34 +282,209 @@ const Dashboard = () => {
                     </Button>
                   }
                 />
+                <Button type="submit" disabled={creatingOrganization}>
+                  {creatingOrganization ? "Creating…" : "Create organization"}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+      </header>
 
-      {!selectedOrganization ? (
-        <p className="text-center">Select an organization to see boards</p>
-      ) : board.length === 0 ? (
-        <p className="text-center">No boards yet — click Create Board</p>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {board.map((board) => (
-            <Card
-              key={board.id}
+      <section
+        className="organization-panel"
+        aria-labelledby="organization-label"
+      >
+        <div className="organization-select-wrap">
+          <label
+            id="organization-label"
+            className="eyebrow"
+            htmlFor="organization-select"
+          >
+            Active organization
+          </label>
+          <select
+            className="organization-select"
+            id="organization-select"
+            value={selectedOrganizationId}
+            onChange={(event) => {
+              setBoards([]);
+              setBoardsError(false);
+              setSelectedOrganizationId(event.target.value);
+            }}
+            disabled={organizationsLoading || organizations.length === 0}
+          >
+            <option value="">
+              {organizationsLoading
+                ? "Loading organizations…"
+                : "Choose an organization"}
+            </option>
+            {organizations.map((organization) => (
+              <option key={organization.id} value={organization.id}>
+                {organization.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        {selectedOrganization && (
+          <>
+            <p className="organization-description">
+              {selectedOrganization.description}
+            </p>
+            <Button
+              variant="outline"
+              className="action-button settings-button"
               onClick={() =>
-                navigate(
-                  `/organization/${board.organizationId}/board/${board.id}`,
-                )
+                navigate(`/organization/${selectedOrganization.id}/settings`)
               }
-              className="cursor-pointer hover:shadow-md p-4"
             >
-              <CardTitle>{board.title}</CardTitle>
-            </Card>
-          ))}
+              <Settings2 aria-hidden="true" />
+              Settings
+            </Button>
+          </>
+        )}
+      </section>
+
+      {organizationsError && (
+        <div className="state-panel" role="alert">
+          <p>Organizations could not be loaded.</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setOrganizationsLoading(true);
+              setOrganizationsError(false);
+              void loadOrganizations();
+            }}
+          >
+            Try again
+          </Button>
         </div>
       )}
-    </div>
+      {!organizationsLoading &&
+        !organizationsError &&
+        organizations.length === 0 && (
+          <section className="empty-panel">
+            <span className="empty-icon" aria-hidden="true">
+              <FolderKanban />
+            </span>
+            <h2 className="section-heading">Start with a workspace</h2>
+            <p>
+              Create an organization to bring your team and boards together.
+            </p>
+            <Button onClick={() => setOrganizationDialogOpen(true)}>
+              <Plus aria-hidden="true" />
+              Create organization
+            </Button>
+          </section>
+        )}
+
+      {selectedOrganization && (
+        <section className="boards-section" aria-labelledby="boards-heading">
+          <div className="section-heading-row">
+            <div>
+              <p className="eyebrow">Inside {selectedOrganization.name}</p>
+              <h2 id="boards-heading" className="section-heading">
+                Boards
+              </h2>
+            </div>
+            <Dialog open={boardDialogOpen} onOpenChange={setBoardDialogOpen}>
+              <DialogTrigger
+                render={
+                  <Button className="action-button">
+                    <Plus aria-hidden="true" />
+                    New board
+                  </Button>
+                }
+              />
+              <DialogContent className="app-dialog">
+                <DialogHeader>
+                  <p className="eyebrow">A new place to plan</p>
+                  <DialogTitle className="pixel-heading dialog-heading">
+                    Create a board
+                  </DialogTitle>
+                </DialogHeader>
+                <form className="form-stack" onSubmit={handleCreateBoard}>
+                  <div className="field-stack">
+                    <Label htmlFor="board-title">Board name</Label>
+                    <Input
+                      id="board-title"
+                      autoFocus
+                      required
+                      value={boardTitle}
+                      onChange={(event) => setBoardTitle(event.target.value)}
+                      placeholder="e.g. Product roadmap"
+                    />
+                  </div>
+                  <DialogFooter className="dialog-actions">
+                    <DialogClose
+                      render={
+                        <Button variant="outline" type="button">
+                          Cancel
+                        </Button>
+                      }
+                    />
+                    <Button type="submit" disabled={creatingBoard}>
+                      {creatingBoard ? "Creating…" : "Create board"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {boardsLoading ? (
+            <div className="state-panel" role="status">
+              Loading boards…
+            </div>
+          ) : boardsError ? (
+            <div className="state-panel" role="alert">
+              <p>Boards could not be loaded.</p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setBoardsError(false);
+                  setBoardsRefresh((current) => current + 1);
+                }}
+              >
+                Try again
+              </Button>
+            </div>
+          ) : boards.length === 0 ? (
+            <div className="empty-inline">
+              <FolderKanban aria-hidden="true" />
+              <div>
+                <h3>No boards yet</h3>
+                <p>Create the first board for this organization.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="board-grid">
+              {boards.map((board, index) => (
+                <button
+                  className={`board-tile board-tile-${index % 4}`}
+                  key={board.id}
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      `/organization/${board.organizationId}/board/${board.id}`,
+                    )
+                  }
+                >
+                  <span className="board-tile-icon" aria-hidden="true">
+                    <FolderKanban />
+                  </span>
+                  <span className="board-tile-title">{board.title}</span>
+                  <ArrowUpRight
+                    className="board-tile-arrow"
+                    aria-hidden="true"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+    </main>
   );
 };
 
