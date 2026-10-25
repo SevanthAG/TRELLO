@@ -132,5 +132,4 @@ memberRoute.get("/:orgId", async (req, res) => {
   });
 });
 
-
 export default memberRoute;

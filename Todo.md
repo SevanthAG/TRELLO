@@ -1,124 +1,87 @@
-# TRELLO Board Application - Todo Roadmap
+# TRELLO — Realtime (WebSocket) Build Plan
 
-> Stack: Turborepo + Bun | Backend: Express 5 + Prisma 7 + Postgres | Frontend: Vite + React 19 + Tailwind 4 + shadcn
+> START HERE → Phase 0. Do the phases in order. Don't move on until that phase's
+> "Checkpoint" passes.
 
-## ✅ Already Done
-- [x] Signup / Signin (bcrypt + JWT 7d, localStorage token)
-- [x] Create Organization (transaction creates Organization + ADMIN Membership)
-- [x] List my Organizations / Get one Organization (with membership check)
-- [x] Add Member to Organization by email (ADMIN-only, MEMBER role)
-- [x] Create Board (ADMIN-only, duplicate title check per-org)
-- [x] List Boards by Org / Get Board by ID
-- [x] JWT auth middleware (`Bearer <token>` -> `req.userId`)
+## Decisions (locked)
 
-## 🐛 Fix Existing Bugs / Tech Debt (Do First)
-- [ ] Fix `apps/Frontend/src/Pages/Board.tsx` - empty axios.get(``), empty useEffect, implement real fetch `GET /api/board/:orgId/board/:boardId`
-- [ ] Fix `Dashboard.tsx:265` relative navigate `organization/...` -> `/organization/:id/board/:boardId`
-- [ ] Fix `App.tsx` routes missing leading `/` for `organization/:orgId/board/:boardId` and `organization/:orgId/settings`
-- [ ] Add `/` route + ProtectedRoute guard (redirect to /signin if no token, redirect to /dashboard if logged in)
-- [ ] `Setting.tsx` - implement member list UI (currently only renders `<p>Members Of organization</p>`)
-- [ ] Replace hardcoded `http://localhost:3000` with `VITE_API_URL` env + axios instance with auth interceptor
-- [ ] Add loading / error / empty states for Dashboard, Board, Settings pages
-- [ ] Migrate primary keys Int autoincrement -> UUID (Google UUID) for User, Organization, Membership, Board, Issue
-- [ ] Add `@@unique([userId, organizationId])` on Membership to prevent duplicate joins
-- [ ] Add `createdAt / updatedAt` to all Prisma models
-- [ ] Add input validation (zod) on all Backend routes + consistent error response shape
+- Library: **pure `ws`** (not socket.io) — to learn the mechanics.
+- Runs **inside `apps/Backend`** (same process, same port 3000). No second app, no Redis.
+- **HTTP stays the write path.** Sockets only push notifications out.
+  (Frontend still calls the normal API to create/update; WebSocket just tells other tabs.)
 
-## 🔐 Auth & User Profile
-- [ ] `GET /api/auth/me` - get current user
-- [ ] Logout (clear token) + persist session handling
-- [ ] Refresh tokens / shorter access token expiry
-- [ ] Password reset (forgot / reset via email)
-- [ ] Change password + update profile (username, avatar)
-- [ ] OAuth - Google login
-- [ ] Backend validation + rate-limit on auth routes
+## Event contract (write this down before any code)
 
-## 🏢 Organizations & Members
-- [ ] `GET /api/organization/:orgId/members` - list members (needed for Settings page)
-- [ ] Remove member / Leave organization / Change role (ADMIN <-> MEMBER)
-- [ ] Update / Delete organization (ADMIN-only)
-- [ ] Invite by link / invite by email (nodemailer)
-- [ ] Organization settings page - member table with role badges, remove/promote actions
-- [ ] Search organizations, recent organizations
+- Message shape: `{ type, boardId, payload }`
+- Event types: `section:created`, `section:updated`, `issue:created`, `issue:updated`
+- Both frontend and backend must agree on these exact strings.
 
-## 📋 Boards - Core (make functional)
-- [ ] Update Board (rename title, description, background/cover color)
-- [ ] Delete / Archive Board
-- [ ] Board detail API with nested include: `board -> lists -> cards (+ labels, assignees, comments count)`
-- [ ] Starred / Favorite boards, Recent boards, Search + filter boards
-- [ ] Board visibility (private / workspace-visible / public)
-- [ ] Board members (separate from org members) - add/remove
-- [ ] Build real `Board.tsx` Kanban layout - header, lists horizontal scroll, add-list input
+---
 
-## 📝 Lists (Columns) - Missing, High Priority
-- [ ] Prisma model: `List { id, title, position Float, boardId, cards[] }`
-- [ ] `POST /api/board/:boardId/lists` - create list
-- [ ] `PATCH /api/lists/:listId` - rename list
-- [ ] `DELETE /api/lists/:listId` - delete / archive list
-- [ ] `PATCH /api/board/:boardId/lists/reorder` - reorder lists (drag-drop persist)
-- [ ] Frontend: List column component + Add List + rename inline + delete menu + horizontal scroll
+## Phase 0 — Prep
 
-## 🃏 Cards (Issues) - Missing, High Priority
-- [ ] Promote `Issue` -> `Card` model: `{ id, title, description, position, listId, boardId, assigneeIds, labels, dueDate, completed, archived, createdAt }`
-- [ ] `POST /api/lists/:listId/cards` - create card
-- [ ] `GET /api/lists/:listId/cards` - list cards ordered by position
-- [ ] `PATCH /api/cards/:cardId` - edit title/description/due date/move list
-- [ ] `DELETE /api/cards/:cardId` - delete / archive / restore card
-- [ ] `PATCH /api/cards/reorder` - drag-drop cards within + across lists
-- [ ] Card detail modal - open on click, edit description, assign members, set due date
-- [ ] Assign/unassign card members (`CardMember` join table)
-- [ ] Frontend drag-and-drop with `@dnd-kit/core` or `hello-pangea-dnd`
-- [ ] Card counts, empty-list placeholder, quick-add card UX
+- [ ] Delete the empty `apps/WebSocket` folder (not used anymore).
+- [ ] In `apps/Backend`: add `ws` dependency + `@types/ws` (dev).
+- [ ] Put the event contract types in one shared file so both sides import the same shape.
+- [ ] **Checkpoint:** dependencies installed, `ws` importable.
 
-## 🏷️ Trello Power Features
-- [ ] Labels/Tags: `Label { id, name, color, boardId }` + `CardLabel` join + filter by label
-- [ ] Checklists: `Checklist { id, title, cardId }` + `CheckItem { id, text, done, position }` + progress bar
-- [ ] Comments / Activity: `Comment { id, text, cardId, userId }` + `Activity { action, userId, boardId/cardId }` feed
-- [ ] Due dates: date picker, overdue / due-soon badges, reminders
-- [ ] Attachments: upload via multer/S3 (or local), preview + delete on cards
-- [ ] Cover images / colors on cards
-- [ ] @mentions in comments, markdown in descriptions
+## Phase 1 — Attach `ws` to the existing server
 
-## 🎨 UI/UX Polish
-- [ ] Global Navbar (org switcher, search, user avatar menu) + Sidebar
-- [ ] Shadcn domain components: `BoardCard`, `ListColumn`, `CardModal`, `MemberAvatar`, `LabelBadge`
-- [ ] Toasts on every mutation (already have Toaster - wire it up)
-- [ ] Optimistic updates with `@tanstack/react-query` + `react-hook-form + zod` for forms
-- [ ] Keyboard shortcuts (N new card, / search, Esc close modal)
-- [ ] Dark mode, responsive mobile layout, board background images
+- [ ] `src/index.ts`: keep the server object that `app.listen(...)` returns (right now it's thrown away).
+- [ ] Create `src/websocket.ts` that takes that server and attaches `ws` to it.
+- [ ] Call it from `index.ts` after the server starts listening.
+- **Direction:** browser → server (connect only). No frontend calls yet.
+- **Checkpoint:** a raw socket can connect (browser console / `wscat`) and the server logs it.
 
-## ⚡ Realtime / Collaboration
-- [ ] WebSocket (`socket.io`) - live board updates when teammate moves/creates cards
-- [ ] Presence - who is viewing board now
-- [ ] Notifications - assigned to card, mentioned, due soon
+## Phase 2 — Auth at the upgrade (BEFORE accepting the socket)
 
-## 🧪 Quality / DevOps
-- [ ] Backend tests (vitest/jest) for auth, org, board, list, card routes
-- [ ] Frontend component tests
-- [ ] Seed script + demo data (demo org + board + lists + cards)
-- [ ] README.md rewrite (remove create-turbo stub, document setup, env, API table)
-- [ ] Docker compose for Postgres + CI (lint/typecheck/build/test)
-- [ ] Pagination + search indexes for boards/cards, debounce search input
+- [ ] In the connection handler, read the token from the **query string** (`?token=...`) — headers can't be set by the browser socket API.
+- [ ] Verify the JWT → get `userId`.
+- [ ] Check that `userId` is a **member of that board's org** (reuse your membership logic).
+- [ ] Reject the handshake (401) if either check fails. Never accept first, check later.
+- **Direction:** frontend sends `boardId` + `token` when it connects, e.g. connect to `?boardId=<id>&token=<JWT>`.
+- **Checkpoint:** missing/bad token → refused. Valid + member → accepted.
 
-## 💡 Suggested Build Order
-1. Fixes + UUID migration + validation
-2. Members list + Board detail API + real Board page shell
-3. Lists CRUD + Cards CRUD + reorder
-4. Drag-drop UI + Card modal
-5. Labels, checklists, comments, due dates
-6. Polish, realtime, tests
+## Phase 3 — Rooms (one room per board)
 
+- [ ] Keep an in-memory `Map<boardId, Set<socket>>`.
+- [ ] On connect → add the socket to that board's set.
+- [ ] On `close` → remove the socket (forget this and you leak dead sockets).
+- [ ] On incoming `message` → parse the raw string yourself (`ws` gives you a string/Buffer, not JSON).
+- **Direction:** frontend joins a room implicitly by connecting with its `boardId`.
+- **Checkpoint:** two tabs on the same board land in the same room; closing one removes it.
 
-BOARD
-─────
-⬜ Delete
+## Phase 4 — Broadcast + hook into the HTTP routes
 
-SECTION
-───────
-⬜ Delete
+- [ ] Write one helper `broadcast(boardId, event)` → loop the room, check `readyState === OPEN`, then `send`.
+- [ ] `section.route.ts`: after a successful `prisma.section.create` → `broadcast` `section:created`.
+- [ ] `section.route.ts` PATCH: after update → `broadcast` `section:updated`.
+- [ ] `issue.route.ts`: after create / update → `broadcast` `issue:created` / `issue:updated`.
+- **Direction:** frontend → backend stays on **HTTP** (unchanged). Backend → frontend goes over the **socket**.
+- **Checkpoint:** create a section in tab A → tab B sees it without refreshing.
 
-ISSUE
-─────
-⬜ Update
-⬜ Delete
-⬜ Move between sections
+## Phase 5 — Frontend wiring (`Board.tsx`)
+
+- [ ] On mount: open the socket with `boardId` + `token`; store it in a `useRef`.
+- [ ] On unmount: close the socket (cleanup in the effect).
+- [ ] On message: `switch` on `type`, update the matching `section` / `issue` state.
+- [ ] Echo guard: ignore events you caused (tag the sender, or skip the sender on the server).
+- [ ] Reconnect: when the socket reopens, re-fetch the board over HTTP (you missed events).
+- [ ] Move the WS URL to a `VITE_WS_URL` env var.
+- **Checkpoint:** two tabs stay in sync for create + update, with **no duplicates**.
+
+---
+
+## Traps to remember
+
+- Authorize during the handshake, not after it.
+- Always remove the socket from its room on `close`.
+- The sender receives its own broadcast → duplicates, because you already add locally after the HTTP response.
+- Check `readyState` before every `send`.
+- Reconnect = missed events = stale state → always re-fetch.
+
+## After realtime works (later, not now)
+
+- Heartbeat: ping/pong interval to drop silently-dead sockets.
+- Presence: "who's viewing this board" — same room mechanism.
+- Scaling note: in-memory rooms only work for ONE backend process. Multiple instances → need Redis. Defer.
