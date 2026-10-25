@@ -48,18 +48,71 @@ const Board = () => {
 
   const navigate = useNavigate();
 
+  const openEditSection = (s: Section) => {
+    setEditingSectionId(s.id);
+    setEditSectionTitle(s.title);
+    setSectionDialogOpen(true);
+  };
+
+  const openEditIssue = (i: Issue) => {
+    setEditingIssue(i);
+    setEditIssueTitle(i.title);
+    setEditIssueDescription(i.description);
+    setIssueDialogOpen(true);
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-      const socket = new WebSocket(
-        `ws://localhost:3000?boardId=${boardId}&token=${token}`
-      );
+    const socket = new WebSocket(
+      `ws://localhost:3000?boardId=${boardId}&token=${token}`,
+    );
 
     socket.onopen = () => {
       console.log("WebSocket connected!");
     };
 
     socket.onmessage = (event) => {
-      console.log("Message from server:", event.data);
+      const parsedData = JSON.parse(event.data);
+
+      if (parsedData.boardId !== boardId) {
+        return;
+      }
+
+      if (parsedData.type === "section:created") {
+        setSection((prev) =>
+          prev.some((s) => s.id === parsedData.payload.id)
+            ? prev
+            : [...prev, parsedData.payload],
+        );
+      }
+
+      if (parsedData.type === "section:updated") {
+        setSection((prev) =>
+          prev.map((s) =>
+            s.id === parsedData.payload.id
+              ? { ...s, title: parsedData.payload.title }
+              : s,
+          ),
+        );
+      }
+
+      if (parsedData.type === "issue:created") {
+        setIssue((prev) =>
+          prev.some((i) => i.id === parsedData.payload.id)
+            ? prev
+            : [...prev, parsedData.payload],
+        );
+      }
+
+      if (parsedData.type === "issue:updated") {
+        setIssue((prev) =>
+          prev.map((i) =>
+            i.id === parsedData.payload.id
+              ? { ...i, ...parsedData.payload }
+              : i,
+          ),
+        );
+      }
     };
 
     socket.onerror = (error) => {
@@ -73,20 +126,7 @@ const Board = () => {
     return () => {
       socket.close();
     };
-  }, []);
-
-  const openEditSection = (s: Section) => {
-    setEditingSectionId(s.id);
-    setEditSectionTitle(s.title);
-    setSectionDialogOpen(true);
-  };
-
-  const openEditIssue = (i: Issue) => {
-    setEditingIssue(i);
-    setEditIssueTitle(i.title);
-    setEditIssueDescription(i.description);
-    setIssueDialogOpen(true);
-  };
+  }, [boardId]);
 
   const handleCreateSection = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -116,7 +156,11 @@ const Board = () => {
         },
       });
 
-      setSection((prev) => [...prev, response.data.newSection]);
+      setSection((prev) =>
+        prev.some((s) => s.id === response.data.newSection.id)
+          ? prev
+          : [...prev, response.data.newSection],
+      );
       toast.add({
         title: "New Section Created",
         type: "success",
@@ -190,7 +234,11 @@ const Board = () => {
         },
       });
 
-      setIssue((prev) => [...prev, response.data.newIssue]);
+      setIssue((prev) =>
+      prev.some((i) => i.id === response.data.newIssue.id)
+        ? prev
+        : [...prev, response.data.newIssue]
+    );
 
       toast.add({
         title: "Issue Added",

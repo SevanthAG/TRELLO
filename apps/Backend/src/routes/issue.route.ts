@@ -67,6 +67,12 @@ issueRouter.post("/:sectionId", async (req, res) => {
       },
     });
 
+    broadcast(board.id, {
+      type:"issue:created",
+      boardId: board.id,
+      payload: newIssue,
+    })
+
     return res.status(201).json({
       message: "Issue Created Succsfully",
       newIssue,
@@ -233,6 +239,12 @@ issueRouter.patch("/:sectionId/:issueId", async (req, res) => {
       },
       data: data,
     });
+
+    broadcast(board.id, {
+      type: "issue:updated",
+      boardId: board.id,
+      payload: updatedIssue
+    })
 
     return res.status(200).json({
       message: "issue updated successfully",
