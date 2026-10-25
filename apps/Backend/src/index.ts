@@ -1,30 +1,31 @@
+
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { createServer } from "http";
+
 import authRoute from "./routes/auth.route";
 import orgRoute from "./routes/organization.route";
-import { authmiddleware } from "./middleware/authmidleware";
 import memberRoute from "./routes/members.routes";
 import boardRoute from "./routes/boards.route";
 import sectionRouter from "./routes/section.route";
 import issueRouter from "./routes/issue.route";
-import {createServer } from "http"
-import { setupWebSocket } from "../websocket";
+
+import { authmiddleware } from "./middleware/authmidleware";
+import { setupWebSocket } from "./websocket";
 
 const app = express();
 
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-  ],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
-
-const server = createServer(app);
-
-setupWebSocket(server);
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use(express.json());
 
@@ -33,13 +34,16 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoute);
-app.use("/api/organization",authmiddleware, orgRoute);
-app.use("/api/member", authmiddleware, memberRoute)
+app.use("/api/organization", authmiddleware, orgRoute);
+app.use("/api/member", authmiddleware, memberRoute);
 app.use("/api/board", authmiddleware, boardRoute);
-app.use("/api/section", authmiddleware, sectionRouter)
-app.use("/api/issue", authmiddleware, issueRouter)
+app.use("/api/section", authmiddleware, sectionRouter);
+app.use("/api/issue", authmiddleware, issueRouter);
 
+const server = createServer(app);
+
+setupWebSocket(server);
 
 server.listen(3000, () => {
-  console.log("Server is running...");
+  console.log("HTTP and WebSocket server running on port 3000");
 });

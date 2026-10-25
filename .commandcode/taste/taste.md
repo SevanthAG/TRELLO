@@ -1,12 +1,6 @@
-# Taste Learnings
+# Taste
 
-## Workflow
-- Sometimes prefers read-only deep analysis of the codebase with no modifications, followed by tutor-style explanations of their own code when doubts arise — values learning/understanding over having changes made for them. Confidence: 0.7
-- Wants work/teaching delivered incrementally and in order ("step by step… one after another") as a phased plan with explicit checkpoints, rather than everything at once. Confidence: 0.6
-
-## Tooling
-- Prefers raw/low-level libraries over high-abstraction frameworks (e.g. pure `ws` instead of socket.io) deliberately, because abstractions hide the underlying mechanics and hinder understanding. Confidence: 0.7
-
-## Communication
-- Self-describes as a beginner "learning while doing" and explicitly asks not to be handed direct code up front: explain how the concept works first (the mechanism/mental model), then move toward the solution. Confidence: 0.85
-- Wants explanations kept short and simple — pushes back on long, book-like answers and asks for the plain-word essence ("in simple word... not that much needed"). Confidence: 0.75
+- Prefers tutoring/explanation style over direct edits: wants the assistant to analyze and explain first, and to never create, edit, or delete code files without explicit per-change permission — an approved plan or auto-accept mode does not count as that permission. Confidence: 0.9
+- When learning a concept, wants conceptual teaching (the "why", the mental model, analogies, pseudo-code or comment-level hints) rather than code blocks or ready-to-paste snippets — handing him code instead of explanation frustrates him even when nothing is edited; when he's going wrong, correct the *thinking/concept* rather than pointing out syntax; he re-flags this whenever a code-shaped skeleton/snippet creeps back in. But once he says he now understands the concept, the expectation flips: he then asks for the code version and wants it short and simple. Confidence: 0.85
+- Wants the assistant to own and produce a concrete plan rather than just narrate/restate an existing plan or spec document (e.g. a Todo.md). Confidence: 0.6
+- Prefers short, incremental explanations — one small step at a time with a pause for confirmation and a "why this / what's happening" rationale — over long, dense walls of text; large multi-concept answers overwhelm him, and he explicitly asks to walk each step one at a time so he can understand why each piece is being created. Confidence: 0.8

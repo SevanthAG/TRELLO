@@ -38,9 +38,7 @@ const Board = () => {
   const [issueDescription, setIssueDescription] = useState("");
 
   const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
-  const [editingSectionId, setEditingSectionId] = useState<string | null>(
-    null,
-  );
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editSectionTitle, setEditSectionTitle] = useState("");
 
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
@@ -49,6 +47,33 @@ const Board = () => {
   const [editIssueDescription, setEditIssueDescription] = useState("");
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+      const socket = new WebSocket(
+        `ws://localhost:3000?boardId=${boardId}&token=${token}`
+      );
+
+    socket.onopen = () => {
+      console.log("WebSocket connected!");
+    };
+
+    socket.onmessage = (event) => {
+      console.log("Message from server:", event.data);
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket disconnected");
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []);
 
   const openEditSection = (s: Section) => {
     setEditingSectionId(s.id);
@@ -188,9 +213,7 @@ const Board = () => {
     }
   };
 
-  const handleUpdateSection = async (
-    e: React.FormEvent<HTMLFormElement>,
-  ) => {
+  const handleUpdateSection = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {

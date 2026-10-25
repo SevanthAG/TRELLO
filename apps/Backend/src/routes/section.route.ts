@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "db/client";
+import { broadcast } from "../websocket";
 
 const sectionRouter = Router();
 
@@ -52,6 +53,12 @@ sectionRouter.post("/:boardId", async (req, res) => {
         title: title,
       },
     });
+
+    broadcast(boardId, {
+      type: "section_created",
+      boardId,
+      payload: newSection
+    })
 
     return res.status(201).json({
       message: "Section Created Successfully",

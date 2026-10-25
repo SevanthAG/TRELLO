@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "db/client";
+import { broadcast } from "../websocket";
 
 const issueRouter = Router();
 
