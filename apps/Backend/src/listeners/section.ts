@@ -5,7 +5,7 @@ export const wsSectionOperation = async (
   socket: AuthenticatedWebSocket,
   data: any,
 ) => {
-  if (data.type == "add_section") {
+  try {
     const userId = socket.userId;
 
     const board = await prisma.board.findFirst({
@@ -46,5 +46,7 @@ export const wsSectionOperation = async (
         payload: newSection,
       }),
     );
+  } catch (err) {
+    console.log("In create Section..!!", err);
   }
 };

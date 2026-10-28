@@ -12,7 +12,6 @@ declare global {
   }
 }
 
-
 export interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
 }

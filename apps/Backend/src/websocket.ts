@@ -1,10 +1,10 @@
 import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "http";
 import jwt from "jsonwebtoken";
-import { prisma } from "db/client";
 import type { AuthenticatedWebSocket, JwtUser } from "./lib/types";
 import { wsSectionOperation } from "./listeners/section";
 import { parse } from "node:url";
+import { joinRoom } from "./listeners/rooms";
 
 export function setUpWebSocket(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
@@ -34,11 +34,18 @@ export function setUpWebSocket(server: Server) {
       return;
     }
   });
+
   wss.on("connection", (socket: AuthenticatedWebSocket) => {
     socket.on("message", (data) => {
       const parsedData = JSON.parse(data.toString());
 
-      wsSectionOperation(socket, parsedData);
+      if(parsedData.type == "join_room"){
+        joinRoom(parsedData.boardId, socket)
+      }
+
+      if(parsedData.type == "add_section"){
+        wsSectionOperation(socket, parsedData.boardId);
+      }
     });
   });
 }

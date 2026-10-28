@@ -128,13 +128,6 @@ sectionRouter.patch("/:boardId/:sectionId", async (req, res) => {
         title: title,
       },
     });
-
-    broadcast(boardId, {
-      type: "section:updated",
-      boardId,
-      payload: updatedSection
-    })
-
     return res.status(200).json({
       message: "Section Updated",
       updatedSection,

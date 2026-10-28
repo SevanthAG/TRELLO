@@ -27,8 +27,16 @@ const Board = () => {
     );
 
     socket.onopen = () => {
-      console.log("WebSocket Connected..!!");
+      socket.send(
+        JSON.stringify({
+          type: "join_room",
+          boardId: boardId,
+        }),
+      );
     };
+
+    
+
   }, []);
 
   useEffect(() => {
