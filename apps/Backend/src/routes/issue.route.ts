@@ -1,89 +1,7 @@
 import { Router } from "express";
 import { prisma } from "db/client";
-import { broadcast } from "../websocket";
 
 const issueRouter = Router();
-
-issueRouter.post("/:sectionId", async (req, res) => {
-  try {
-    const userId = req.userId;
-    const { sectionId } = req.params;
-    const { title, description } = req.body;
-
-    if (!userId) {
-      return res.status(401).json({
-        message: "Unauthorized",
-      });
-    }
-
-    if (!title || !description) {
-      return res.status(400).json({
-        message: "title and description are required",
-      });
-    }
-
-    const section = await prisma.section.findFirst({
-      where: {
-        id: sectionId,
-      },
-    });
-
-    if (!section) {
-      return res.status(404).json({
-        message: "Section Not Found",
-      });
-    }
-
-    const board = await prisma.board.findFirst({
-      where: {
-        id: section.boardId,
-      },
-    });
-
-    if (!board) {
-      return res.status(404).json({
-        message: "Board Not Found",
-      });
-    }
-
-    const membership = await prisma.membership.findFirst({
-      where: {
-        userId: userId,
-        organizationId: board.organizationId,
-      },
-    });
-
-    if (!membership) {
-      return res.status(403).json({
-        message: "You are not member of Organization",
-      });
-    }
-
-    const newIssue = await prisma.issue.create({
-      data: {
-        sectionId: sectionId,
-        title: title,
-        description: description,
-      },
-    });
-
-    broadcast(board.id, {
-      type:"issue:created",
-      boardId: board.id,
-      payload: newIssue,
-    })
-
-    return res.status(201).json({
-      message: "Issue Created Succsfully",
-      newIssue,
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({
-      message: "Internal server Error",
-    });
-  }
-});
 
 issueRouter.get("/:sectionId", async (req, res) => {
   try {
@@ -239,12 +157,6 @@ issueRouter.patch("/:sectionId/:issueId", async (req, res) => {
       },
       data: data,
     });
-
-    broadcast(board.id, {
-      type: "issue:updated",
-      boardId: board.id,
-      payload: updatedIssue
-    })
 
     return res.status(200).json({
       message: "issue updated successfully",

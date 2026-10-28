@@ -2,7 +2,7 @@ import { prisma } from "db/client";
 import type { AuthenticatedWebSocket } from "../lib/types";
 import { broadcastToBoard } from "./rooms";
 
-export const wsSectionOperation = async (
+export const addSection = async (
   socket: AuthenticatedWebSocket,
   data: any,
 ) => {
@@ -49,3 +49,7 @@ export const wsSectionOperation = async (
     console.log("In create Section..!!", err);
   }
 };
+
+export const updateSection = async () => {
+  
+}

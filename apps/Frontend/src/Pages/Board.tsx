@@ -19,15 +19,22 @@ type Section = {
   boardId: string;
 };
 
-const Board = () => {
+type Issue = {
+  id: string;
+  title: string;
+  description: string;
+  sectionId: string;
+};
 
+const Board = () => {
   const { boardId } = useParams();
   const [title, setTitle] = useState("");
   const [section, setSection] = useState<Section[]>([]);
 
-  const navigate = useNavigate();
-  const socketRef = useRef<WebSocket | null>(null);;
+  const [issue, setIssue] = useState<Issue[]>([]);
 
+  const navigate = useNavigate();
+  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -53,11 +60,11 @@ const Board = () => {
       const parsedData = JSON.parse(event.data);
 
       if (parsedData.type == "section_added") {
-        setSection((prev) => [...prev, parsedData.payload])
+        setSection((prev) => [...prev, parsedData.payload]);
       }
     };
 
-     socketRef.current = socket;
+    socketRef.current = socket;
   }, []);
 
   useEffect(() => {
@@ -83,19 +90,41 @@ const Board = () => {
       }
     };
     getSection();
+
+    const getIssues = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/signin");
+        return;
+      }
+
+      try {
+        const response = await api.get(`/issue/board/${boardId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setIssue(response.data.issues);
+      } catch (err) {
+        toast.add({ title: "Failed to load issues", type: "error" });
+      }
+    };
+
+    getIssues();
   }, [boardId]);
 
   const handleCreateSection = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    socketRef.current?.send(JSON.stringify({
-      type: "add_section",
-      boardId,
-      payload: {
-        title: title
-      }
-    }))
-  }
+    socketRef.current?.send(
+      JSON.stringify({
+        type: "add_section",
+        boardId,
+        payload: {
+          title: title,
+        },
+      }),
+    );
+  };
 
   return (
     <div>
@@ -142,6 +171,16 @@ const Board = () => {
             {section.map((item) => (
               <div key={item.id}>
                 <div>{item.title}</div>
+                <div>
+                  {issue
+                    .filter((c) => c.sectionId === item.id)
+                    .map((c) => (
+                      <div key={c.id} className="border ">
+                        <h3>Title: {c.title}</h3>
+                        <p>Description: {c.description}</p>
+                      </div>
+                    ))}
+                </div>
               </div>
             ))}
           </div>
