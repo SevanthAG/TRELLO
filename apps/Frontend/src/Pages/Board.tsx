@@ -1,7 +1,18 @@
 import { toast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+
 
 type Section = {
   id: string;
@@ -10,10 +21,14 @@ type Section = {
 };
 
 const Board = () => {
+
   const { boardId } = useParams();
+  const [title, setTitle] = useState("");
   const [section, setSection] = useState<Section[]>([]);
 
   const navigate = useNavigate();
+  const socketRef = useRef<WebSocket | null>(null);;
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -35,8 +50,15 @@ const Board = () => {
       );
     };
 
-    
+    socket.onmessage = (event) => {
+      const parsedData = JSON.parse(event.data);
 
+      if (parsedData.type == "section_added") {
+        setSection((prev) => [...prev, parsedData.payload])
+      }
+    };
+
+     socketRef.current = socket;
   }, []);
 
   useEffect(() => {
@@ -64,19 +86,68 @@ const Board = () => {
     getSection();
   }, [boardId]);
 
+  const handleCreateSection = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    socketRef.current?.send(JSON.stringify({
+      type: "add_section",
+      boardId,
+      payload: {
+        title: title
+      }
+    }))
+  }
+
   return (
     <div>
-      {section.length === 0 ? (
-        <p>No sections yet</p>
-      ) : (
-        <div className="flex justify-evenly">
-          {section.map((item) => (
-            <div key={item.id}>
-              <div>{item.title}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div>
+        <Dialog>
+          <DialogTrigger
+            render={
+              <Button variant="outline">
+                {" "}
+                <Plus /> Create Section
+              </Button>
+            }
+          />
+
+          <DialogContent className="sm:max-w-sm">
+            <form className="m-5" onSubmit={handleCreateSection}>
+              <Input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Section title"
+              />
+
+              <DialogFooter>
+                <Button type="submit">Create Section</Button>
+                <DialogClose
+                  render={
+                    <Button variant="outline" type="button">
+                      Cancel
+                    </Button>
+                  }
+                />
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div>
+        {section.length === 0 ? (
+          <p>No sections yet</p>
+        ) : (
+          <div className="flex justify-evenly">
+            {section.map((item) => (
+              <div key={item.id}>
+                <div>{item.title}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

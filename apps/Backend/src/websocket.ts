@@ -44,7 +44,7 @@ export function setUpWebSocket(server: Server) {
       }
 
       if(parsedData.type == "add_section"){
-        wsSectionOperation(socket, parsedData.boardId);
+        wsSectionOperation(socket, parsedData);
       }
     });
   });
