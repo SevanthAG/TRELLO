@@ -1,3 +1,5 @@
+import WebSocket from "ws";
+
 export type JwtUser = {
   userId:string,
 }
@@ -8,4 +10,9 @@ declare global {
       userId?: string;
     }
   }
+}
+
+
+export interface AuthenticatedWebSocket extends WebSocket {
+  userId?: string;
 }

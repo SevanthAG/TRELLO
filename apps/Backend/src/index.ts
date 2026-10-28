@@ -12,7 +12,7 @@ import sectionRouter from "./routes/section.route";
 import issueRouter from "./routes/issue.route";
 
 import { authmiddleware } from "./middleware/authmidleware";
-import { setupWebSocket } from "./websocket";
+import { setUpWebSocket } from "./websocket";
 
 const app = express();
 
@@ -37,12 +37,12 @@ app.use("/api/auth", authRoute);
 app.use("/api/organization", authmiddleware, orgRoute);
 app.use("/api/member", authmiddleware, memberRoute);
 app.use("/api/board", authmiddleware, boardRoute);
-app.use("/api/section", authmiddleware, sectionRouter);
-app.use("/api/issue", authmiddleware, issueRouter);
+// app.use("/api/section", authmiddleware, sectionRouter);
+// app.use("/api/issue", authmiddleware, issueRouter);
 
 const server = createServer(app);
 
-setupWebSocket(server);
+setUpWebSocket(server);
 
 server.listen(3000, () => {
   console.log("HTTP and WebSocket server running on port 3000");

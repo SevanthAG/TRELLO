@@ -54,11 +54,11 @@ sectionRouter.post("/:boardId", async (req, res) => {
       },
     });
 
-    broadcast(boardId, {
-      type: "section:created",
-      boardId,
-      payload: newSection
-    })
+    // broadcast(boardId, {
+    //   type: "section:created",
+    //   boardId,
+    //   payload: newSection
+    // })
 
     return res.status(201).json({
       message: "Section Created Successfully",
