@@ -1,76 +1,7 @@
 import { Router } from "express";
 import { prisma } from "db/client";
-import { broadcast } from "../websocket";
 
 const sectionRouter = Router();
-
-sectionRouter.post("/:boardId", async (req, res) => {
-  try {
-    const userId = req.userId;
-    const { boardId } = req.params;
-    const { title } = req.body;
-
-    if (!userId) {
-      return res.status(401).json({
-        message: "Unauthorized",
-      });
-    }
-
-    const board = await prisma.board.findFirst({
-      where: {
-        id: boardId,
-      },
-    });
-
-    if (!board) {
-      return res.status(404).json({
-        message: "Board Not exist",
-      });
-    }
-
-    const membership = await prisma.membership.findFirst({
-      where: {
-        organizationId: board.organizationId,
-        userId: userId,
-      },
-    });
-
-    if (!membership) {
-      return res.status(403).json({
-        message: "You are not member of Organization",
-      });
-    }
-
-    if (membership.role !== "ADMIN") {
-      return res.status(403).json({
-        message: "You are not allowed",
-      });
-    }
-
-    const newSection = await prisma.section.create({
-      data: {
-        boardId: boardId,
-        title: title,
-      },
-    });
-
-    // broadcast(boardId, {
-    //   type: "section:created",
-    //   boardId,
-    //   payload: newSection
-    // })
-
-    return res.status(201).json({
-      message: "Section Created Successfully",
-      newSection,
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({
-      message: "Internal server Error",
-    });
-  }
-});
 
 sectionRouter.get("/:boardId", async (req, res) => {
   try {

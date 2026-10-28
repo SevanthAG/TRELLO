@@ -4,22 +4,16 @@ import jwt from "jsonwebtoken";
 import { prisma } from "db/client";
 import type { AuthenticatedWebSocket, JwtUser } from "./lib/types";
 import { wsSectionOperation } from "./listeners/section";
+import { parse } from "node:url";
 
 export function setUpWebSocket(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", async (req, socket, head) => {
-    const Authheader = req.headers.authorization;
+    const { query } = parse(req.url ?? "", true);
+    const token = query.token;
 
-    if (!Authheader || typeof Authheader !== "string") {
-      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-
-    const token = Authheader.split(" ")[1];
-
-    if (!token) {
+    if (typeof token !== "string" || !token) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
       return;
@@ -33,7 +27,6 @@ export function setUpWebSocket(server: Server) {
         authenticatedWs.userId = decoded.userId;
 
         wss.emit("connection", authenticatedWs, req);
-
       });
     } catch (err) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
@@ -49,4 +42,3 @@ export function setUpWebSocket(server: Server) {
     });
   });
 }
-

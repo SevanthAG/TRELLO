@@ -61,72 +61,72 @@ const BoardWs = () => {
     setIssueDialogOpen(true);
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const socket = new WebSocket(
-      `ws://localhost:3000?boardId=${boardId}&token=${token}`,
-    );
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token");
+  //   const socket = new WebSocket(
+  //     `ws://localhost:3000?boardId=${boardId}&token=${token}`,
+  //   );
 
-    socket.onopen = () => {
-      console.log("WebSocket connected!");
-    };
+  //   socket.onopen = () => {
+  //     console.log("WebSocket connected!");
+  //   };
 
-    socket.onmessage = (event) => {
-      const parsedData = JSON.parse(event.data);
+  //   socket.onmessage = (event) => {
+  //     const parsedData = JSON.parse(event.data);
 
-      if (parsedData.boardId !== boardId) {
-        return;
-      }
+  //     if (parsedData.boardId !== boardId) {
+  //       return;
+  //     }
 
-      if (parsedData.type === "section:created") {
-        setSection((prev) =>
-          prev.some((s) => s.id === parsedData.payload.id)
-            ? prev
-            : [...prev, parsedData.payload],
-        );
-      }
+  //     if (parsedData.type === "section:created") {
+  //       setSection((prev) =>
+  //         prev.some((s) => s.id === parsedData.payload.id)
+  //           ? prev
+  //           : [...prev, parsedData.payload],
+  //       );
+  //     }
 
-      if (parsedData.type === "section:updated") {
-        setSection((prev) =>
-          prev.map((s) =>
-            s.id === parsedData.payload.id
-              ? { ...s, title: parsedData.payload.title }
-              : s,
-          ),
-        );
-      }
+  //     if (parsedData.type === "section:updated") {
+  //       setSection((prev) =>
+  //         prev.map((s) =>
+  //           s.id === parsedData.payload.id
+  //             ? { ...s, title: parsedData.payload.title }
+  //             : s,
+  //         ),
+  //       );
+  //     }
 
-      if (parsedData.type === "issue:created") {
-        setIssue((prev) =>
-          prev.some((i) => i.id === parsedData.payload.id)
-            ? prev
-            : [...prev, parsedData.payload],
-        );
-      }
+  //     if (parsedData.type === "issue:created") {
+  //       setIssue((prev) =>
+  //         prev.some((i) => i.id === parsedData.payload.id)
+  //           ? prev
+  //           : [...prev, parsedData.payload],
+  //       );
+  //     }
 
-      if (parsedData.type === "issue:updated") {
-        setIssue((prev) =>
-          prev.map((i) =>
-            i.id === parsedData.payload.id
-              ? { ...i, ...parsedData.payload }
-              : i,
-          ),
-        );
-      }
-    };
+  //     if (parsedData.type === "issue:updated") {
+  //       setIssue((prev) =>
+  //         prev.map((i) =>
+  //           i.id === parsedData.payload.id
+  //             ? { ...i, ...parsedData.payload }
+  //             : i,
+  //         ),
+  //       );
+  //     }
+  //   };
 
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
+  //   socket.onerror = (error) => {
+  //     console.error("WebSocket error:", error);
+  //   };
 
-    socket.onclose = () => {
-      console.log("WebSocket disconnected");
-    };
+  //   socket.onclose = () => {
+  //     console.log("WebSocket disconnected");
+  //   };
 
-    return () => {
-      socket.close();
-    };
-  }, [boardId]);
+  //   return () => {
+  //     socket.close();
+  //   };
+  // }, [boardId]);
 
   const handleCreateSection = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

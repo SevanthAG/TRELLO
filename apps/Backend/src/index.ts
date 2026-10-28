@@ -37,7 +37,7 @@ app.use("/api/auth", authRoute);
 app.use("/api/organization", authmiddleware, orgRoute);
 app.use("/api/member", authmiddleware, memberRoute);
 app.use("/api/board", authmiddleware, boardRoute);
-// app.use("/api/section", authmiddleware, sectionRouter);
+app.use("/api/section", authmiddleware, sectionRouter);
 // app.use("/api/issue", authmiddleware, issueRouter);
 
 const server = createServer(app);
