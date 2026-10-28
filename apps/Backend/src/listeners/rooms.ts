@@ -15,3 +15,19 @@ export const joinRoom = async (
 
   room.add(socket);
 };
+
+export const broadcastToBoard = async (boardId: string, message: unknown) => {
+  const room = rooms.get(boardId);
+
+  if (!room) {
+    return;
+  }
+
+  const payload = JSON.stringify(message);
+
+  for (const socket of room) {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(payload);
+    }
+  }
+};

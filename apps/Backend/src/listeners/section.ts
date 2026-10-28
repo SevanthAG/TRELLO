@@ -1,5 +1,6 @@
 import { prisma } from "db/client";
 import type { AuthenticatedWebSocket } from "../lib/types";
+import { broadcastToBoard } from "./rooms";
 
 export const wsSectionOperation = async (
   socket: AuthenticatedWebSocket,
@@ -40,12 +41,10 @@ export const wsSectionOperation = async (
       },
     });
 
-    socket.send(
-      JSON.stringify({
-        type: "section_added",
-        payload: newSection,
-      }),
-    );
+    broadcastToBoard(data.boardId, {
+      type: "section_added",
+      payload: newSection,
+    });
   } catch (err) {
     console.log("In create Section..!!", err);
   }
