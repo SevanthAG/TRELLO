@@ -5,7 +5,7 @@ import type { AuthenticatedWebSocket, JwtUser } from "./lib/types";
 import { addSection } from "./listeners/section";
 import { parse } from "node:url";
 import { joinRoom } from "./listeners/rooms";
-import { createIssue } from "./listeners/issue";
+import { createIssue, deleteIssue } from "./listeners/issue";
 
 export function setUpWebSocket(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
@@ -50,6 +50,10 @@ export function setUpWebSocket(server: Server) {
 
       if(parsedData.type == "add_issue"){
         createIssue(socket, parsedData);
+      }
+
+      if(parsedData.type == "delete_issue"){
+        deleteIssue(socket, parsedData)
       }
 
     });

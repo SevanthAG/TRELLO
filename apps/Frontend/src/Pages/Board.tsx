@@ -65,12 +65,22 @@ const Board = () => {
         setSection((prev) => [...prev, parsedData.payload]);
       }
 
-      if(parsedData.type == "Issue_Added") {
-        setIssue((prev) => [...prev, parsedData.payload])
+      if (parsedData.type == "Issue_Added") {
+        setIssue((prev) => [...prev, parsedData.payload]);
+      }
+
+      if (parsedData.type == "issue_deleted") {
+        setIssue((prev) =>
+          prev.filter((item) => item.id !== parsedData.payload.id),
+        );
       }
     };
 
     socketRef.current = socket;
+
+    return () => {
+      socket.close();
+    };
   }, []);
 
   useEffect(() => {
@@ -145,6 +155,19 @@ const Board = () => {
           sectionId,
           title: issueTitle,
           description: issueDescription,
+        },
+      }),
+    );
+  };
+
+  const handleDeleteIssue = async (sectionId: string, issueId: string) => {
+    socketRef.current?.send(
+      JSON.stringify({
+        type: "delete_issue",
+        boardId,
+        payload: {
+          sectionId,
+          issueId,
         },
       }),
     );
@@ -247,6 +270,11 @@ const Board = () => {
                       <div key={c.id} className="border ">
                         <h3>Title: {c.title}</h3>
                         <p>Description: {c.description}</p>
+                        <Button
+                          onClick={() => handleDeleteIssue(item.id, c.id)}
+                        >
+                          Delete Issue
+                        </Button>
                       </div>
                     ))}
                 </div>
