@@ -40,7 +40,6 @@ export const createIssue = async (
             description: data.payload.description,
         }
     })
-
     broadcastToBoard(data.boardId, {
         type: "Issue_Added",
         payload: newIssue

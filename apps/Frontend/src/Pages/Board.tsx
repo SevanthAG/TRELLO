@@ -1,6 +1,6 @@
 import { toast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   Dialog,
@@ -31,6 +31,8 @@ const Board = () => {
   const [title, setTitle] = useState("");
   const [section, setSection] = useState<Section[]>([]);
 
+  const [issueTitle, setIssueTitle] = useState("");
+  const [issueDescription, setIssueDescription] = useState("");
   const [issue, setIssue] = useState<Issue[]>([]);
 
   const navigate = useNavigate();
@@ -61,6 +63,10 @@ const Board = () => {
 
       if (parsedData.type == "section_added") {
         setSection((prev) => [...prev, parsedData.payload]);
+      }
+
+      if(parsedData.type == "Issue_Added") {
+        setIssue((prev) => [...prev, parsedData.payload])
       }
     };
 
@@ -126,6 +132,24 @@ const Board = () => {
     );
   };
 
+  const handleAddIssue = async (
+    e: React.FormEvent<HTMLFormElement>,
+    sectionId: string,
+  ) => {
+    e.preventDefault();
+    socketRef.current?.send(
+      JSON.stringify({
+        type: "add_issue",
+        boardId,
+        payload: {
+          sectionId,
+          title: issueTitle,
+          description: issueDescription,
+        },
+      }),
+    );
+  };
+
   return (
     <div>
       <div>
@@ -171,6 +195,51 @@ const Board = () => {
             {section.map((item) => (
               <div key={item.id}>
                 <div>{item.title}</div>
+
+                <div>
+                  <Dialog>
+                    <DialogTrigger
+                      render={
+                        <Button variant="outline">
+                          {" "}
+                          <Plus /> Add Issue
+                        </Button>
+                      }
+                    />
+
+                    <DialogContent className="sm:max-w-sm">
+                      <form
+                        className="m-5"
+                        onSubmit={(e) => handleAddIssue(e, item.id)}
+                      >
+                        <Input
+                          type="text"
+                          value={issueTitle}
+                          onChange={(e) => setIssueTitle(e.target.value)}
+                          placeholder="Issue title"
+                        />
+                        <Input
+                          type="text"
+                          value={issueDescription}
+                          onChange={(e) => setIssueDescription(e.target.value)}
+                          placeholder="Issue Description"
+                        />
+
+                        <DialogFooter>
+                          <Button type="submit">Add Issue</Button>
+                          <DialogClose
+                            render={
+                              <Button variant="outline" type="button">
+                                Cancel
+                              </Button>
+                            }
+                          />
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
                 <div>
                   {issue
                     .filter((c) => c.sectionId === item.id)
