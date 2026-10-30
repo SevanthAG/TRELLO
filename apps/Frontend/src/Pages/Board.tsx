@@ -65,6 +65,12 @@ const Board = () => {
         setSection((prev) => [...prev, parsedData.payload]);
       }
 
+      if (parsedData.type == "section_deleted") {
+        setSection((prev) => 
+          prev.filter((item) => item.id !== parsedData.payload.id),
+        );
+      }
+
       if (parsedData.type == "Issue_Added") {
         setIssue((prev) => [...prev, parsedData.payload]);
       }
@@ -137,6 +143,18 @@ const Board = () => {
         boardId,
         payload: {
           title: title,
+        },
+      }),
+    );
+  };
+
+  const handleDeleteSection = async (sectionId: string) => {
+    socketRef.current?.send(
+      JSON.stringify({
+        type: "delete_section",
+        boardId,
+        payload: {
+          sectionId,
         },
       }),
     );
@@ -218,7 +236,9 @@ const Board = () => {
             {section.map((item) => (
               <div key={item.id}>
                 <div>{item.title}</div>
-
+                <Button onClick={() => handleDeleteSection(item.id)}>
+                  Delete Section
+                </Button>
                 <div>
                   <Dialog>
                     <DialogTrigger

@@ -2,7 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "http";
 import jwt from "jsonwebtoken";
 import type { AuthenticatedWebSocket, JwtUser } from "./lib/types";
-import { addSection } from "./listeners/section";
+import { addSection, delteSection } from "./listeners/section";
 import { parse } from "node:url";
 import { joinRoom } from "./listeners/rooms";
 import { createIssue, deleteIssue } from "./listeners/issue";
@@ -40,22 +40,25 @@ export function setUpWebSocket(server: Server) {
     socket.on("message", (data) => {
       const parsedData = JSON.parse(data.toString());
 
-      if(parsedData.type == "join_room"){
-        joinRoom(parsedData.boardId, socket)
+      if (parsedData.type == "join_room") {
+        joinRoom(parsedData.boardId, socket);
       }
 
-      if(parsedData.type == "add_section"){
+      if (parsedData.type == "add_section") {
         addSection(socket, parsedData);
       }
 
-      if(parsedData.type == "add_issue"){
+      if (parsedData.type == "delete_section") {
+        delteSection(socket, parsedData);
+      }
+
+      if (parsedData.type == "add_issue") {
         createIssue(socket, parsedData);
       }
 
-      if(parsedData.type == "delete_issue"){
-        deleteIssue(socket, parsedData)
+      if (parsedData.type == "delete_issue") {
+        deleteIssue(socket, parsedData);
       }
-
     });
   });
 }

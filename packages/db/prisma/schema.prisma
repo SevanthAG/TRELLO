@@ -62,5 +62,5 @@ model Issue {
   title       String
   description String
   sectionId     String
-  section       Section  @relation(fields: [sectionId], references: [id])
+  section       Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 }
