@@ -37,6 +37,9 @@ const Board = () => {
   const [issueDescription, setIssueDescription] = useState("");
   const [issue, setIssue] = useState<Issue[]>([]);
 
+  const [updatedIssueTitle, setUpdatedIssueTitle] = useState("");
+  const [updatedIssueDescription, setUpdatedIssueDescription] = useState("");
+
   const navigate = useNavigate();
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -85,6 +88,20 @@ const Board = () => {
 
       if (parsedData.type == "Issue_Added") {
         setIssue((prev) => [...prev, parsedData.payload]);
+      }
+
+      if (parsedData.type === "issue_updated") {
+        setIssue((prev) =>
+          prev.map((item) =>
+            item.id === parsedData.payload.id
+              ? {
+                  ...item,
+                  title: parsedData.payload.title,
+                  description: parsedData.payload.description,
+                }
+              : item,
+          ),
+        );
       }
 
       if (parsedData.type == "issue_deleted") {
@@ -202,6 +219,25 @@ const Board = () => {
           sectionId,
           title: issueTitle,
           description: issueDescription,
+        },
+      }),
+    );
+  };
+
+  const handleUpdateIssue = (
+    e: React.FormEvent<HTMLFormElement>,
+    issueId: string,
+  ) => {
+    e.preventDefault();
+
+    socketRef.current?.send(
+      JSON.stringify({
+        type: "update_issue",
+        boardId,
+        payload: {
+          issueId,
+          title: updatedIssueTitle,
+          description: updatedIssueDescription,
         },
       }),
     );
@@ -360,6 +396,59 @@ const Board = () => {
                       <div key={c.id} className="border ">
                         <h3>Title: {c.title}</h3>
                         <p>Description: {c.description}</p>
+
+                        <div>
+                          <Dialog>
+                            <DialogTrigger
+                              render={
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setUpdatedIssueTitle(c.title);
+                                    setUpdatedIssueDescription(c.description);
+                                  }}
+                                >
+                                  Update Issue
+                                </Button>
+                              }
+                            />
+
+                            <DialogContent className="sm:max-w-sm">
+                              <form
+                                className="m-5"
+                                onSubmit={(e) => handleUpdateIssue(e, c.id)}
+                              >
+                                <Input
+                                  value={updatedIssueTitle}
+                                  onChange={(e) =>
+                                    setUpdatedIssueTitle(e.target.value)
+                                  }
+                                  placeholder="Issue title"
+                                />
+
+                                <Input
+                                  value={updatedIssueDescription}
+                                  onChange={(e) =>
+                                    setUpdatedIssueDescription(e.target.value)
+                                  }
+                                  placeholder="Issue description"
+                                />
+
+                                <DialogFooter>
+                                  <Button type="submit">Update Issue</Button>
+
+                                  <DialogClose
+                                    render={
+                                      <Button variant="outline" type="button">
+                                        Cancel
+                                      </Button>
+                                    }
+                                  />
+                                </DialogFooter>
+                              </form>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                         <Button
                           onClick={() => handleDeleteIssue(item.id, c.id)}
                         >
