@@ -227,6 +227,7 @@ const Board = () => {
   const handleUpdateIssue = (
     e: React.FormEvent<HTMLFormElement>,
     issueId: string,
+    sectionId: string
   ) => {
     e.preventDefault();
 
@@ -235,6 +236,7 @@ const Board = () => {
         type: "update_issue",
         boardId,
         payload: {
+          sectionId,
           issueId,
           title: updatedIssueTitle,
           description: updatedIssueDescription,
@@ -416,7 +418,7 @@ const Board = () => {
                             <DialogContent className="sm:max-w-sm">
                               <form
                                 className="m-5"
-                                onSubmit={(e) => handleUpdateIssue(e, c.id)}
+                                onSubmit={(e) => handleUpdateIssue(e, c.id, item.id)}
                               >
                                 <Input
                                   value={updatedIssueTitle}
