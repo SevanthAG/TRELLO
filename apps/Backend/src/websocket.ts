@@ -2,10 +2,10 @@ import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "http";
 import jwt from "jsonwebtoken";
 import type { AuthenticatedWebSocket, JwtUser } from "./lib/types";
-import { addSection, delteSection } from "./listeners/section";
+import { addSection, delteSection, updateSection } from "./listeners/section";
 import { parse } from "node:url";
 import { joinRoom } from "./listeners/rooms";
-import { createIssue, deleteIssue } from "./listeners/issue";
+import { createIssue, deleteIssue, updateIssue } from "./listeners/issue";
 
 export function setUpWebSocket(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
@@ -48,12 +48,20 @@ export function setUpWebSocket(server: Server) {
         addSection(socket, parsedData);
       }
 
+      if (parsedData.type == "update_section") {
+        updateSection(socket, parsedData);
+      }
+
       if (parsedData.type == "delete_section") {
         delteSection(socket, parsedData);
       }
 
       if (parsedData.type == "add_issue") {
         createIssue(socket, parsedData);
+      }
+
+      if(parsedData.type == "update_issue") {
+        updateIssue(socket, parsedData);
       }
 
       if (parsedData.type == "delete_issue") {
