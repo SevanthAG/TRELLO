@@ -79,6 +79,17 @@ export const updateSection = async (
       return;
     }
 
+    const section = await prisma.section.findFirst({
+      where: {
+        id: data.payload.sectionId,
+        boardId: data.boardId,
+      },
+    });
+
+    if (!section) {
+      return;
+    }
+
     const updatedSection = await prisma.section.update({
       where: {
         id: data.payload.sectionId,

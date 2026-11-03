@@ -31,6 +31,8 @@ const Board = () => {
   const [title, setTitle] = useState("");
   const [section, setSection] = useState<Section[]>([]);
 
+  const [updatedTitle, setUpdatedTitle] = useState("");
+
   const [issueTitle, setIssueTitle] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
   const [issue, setIssue] = useState<Issue[]>([]);
@@ -65,8 +67,18 @@ const Board = () => {
         setSection((prev) => [...prev, parsedData.payload]);
       }
 
+      if (parsedData.type === "section_updated") {
+        setSection((prev) =>
+          prev.map((item) =>
+            item.id === parsedData.payload.id
+              ? { ...item, title: parsedData.payload.title }
+              : item,
+          ),
+        );
+      }
+
       if (parsedData.type == "section_deleted") {
-        setSection((prev) => 
+        setSection((prev) =>
           prev.filter((item) => item.id !== parsedData.payload.id),
         );
       }
@@ -143,6 +155,23 @@ const Board = () => {
         boardId,
         payload: {
           title: title,
+        },
+      }),
+    );
+  };
+
+  const handleUpdateSection = async (
+    e: React.FormEvent<HTMLFormElement>,
+    sectionId: string,
+  ) => {
+    e.preventDefault();
+    socketRef.current?.send(
+      JSON.stringify({
+        type: "update_section",
+        boardId,
+        payload: {
+          title: updatedTitle,
+          sectionId,
         },
       }),
     );
@@ -236,9 +265,50 @@ const Board = () => {
             {section.map((item) => (
               <div key={item.id}>
                 <div>{item.title}</div>
+                <div>
+                  <Dialog>
+                    <DialogTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          onClick={() => setUpdatedTitle(item.title)}
+                        >
+                          Update Section
+                        </Button>
+                      }
+                    />
+
+                    <DialogContent className="sm:max-w-sm">
+                      <form
+                        className="m-5"
+                        onSubmit={(e) => handleUpdateSection(e, item.id)}
+                      >
+                        <Input
+                          type="text"
+                          value={updatedTitle}
+                          onChange={(e) => setUpdatedTitle(e.target.value)}
+                          placeholder="Section title"
+                        />
+
+                        <DialogFooter>
+                          <Button type="submit">Update Section</Button>
+                          <DialogClose
+                            render={
+                              <Button variant="outline" type="button">
+                                Cancel
+                              </Button>
+                            }
+                          />
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
                 <Button onClick={() => handleDeleteSection(item.id)}>
                   Delete Section
                 </Button>
+
                 <div>
                   <Dialog>
                     <DialogTrigger
