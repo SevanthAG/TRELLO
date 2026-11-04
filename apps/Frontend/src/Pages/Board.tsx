@@ -12,8 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import IssueCard from "@/components/Board/IssueCard";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import Section from "@/components/Board/Section";
 
-type Section = {
+type BoardSection = {
   id: string;
   title: string;
   boardId: string;
@@ -29,7 +33,7 @@ type Issue = {
 const Board = () => {
   const { boardId } = useParams();
   const [title, setTitle] = useState("");
-  const [section, setSection] = useState<Section[]>([]);
+  const [section, setSection] = useState<BoardSection[]>([]);
 
   const [updatedTitle, setUpdatedTitle] = useState("");
 
@@ -227,7 +231,7 @@ const Board = () => {
   const handleUpdateIssue = (
     e: React.FormEvent<HTMLFormElement>,
     issueId: string,
-    sectionId: string
+    sectionId: string,
   ) => {
     e.preventDefault();
 
@@ -259,212 +263,214 @@ const Board = () => {
   };
 
   return (
-    <div>
+    <DndProvider backend={HTML5Backend}>
       <div>
-        <Dialog>
-          <DialogTrigger
-            render={
-              <Button variant="outline">
-                {" "}
-                <Plus /> Create Section
-              </Button>
-            }
-          />
-
-          <DialogContent className="sm:max-w-sm">
-            <form className="m-5" onSubmit={handleCreateSection}>
-              <Input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Section title"
-              />
-
-              <DialogFooter>
-                <Button type="submit">Create Section</Button>
-                <DialogClose
-                  render={
-                    <Button variant="outline" type="button">
-                      Cancel
-                    </Button>
-                  }
-                />
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div>
-        {section.length === 0 ? (
-          <p>No sections yet</p>
-        ) : (
-          <div className="flex justify-evenly">
-            {section.map((item) => (
-              <div key={item.id}>
-                <div>{item.title}</div>
-                <div>
-                  <Dialog>
-                    <DialogTrigger
-                      render={
-                        <Button
-                          variant="outline"
-                          onClick={() => setUpdatedTitle(item.title)}
-                        >
-                          Update Section
-                        </Button>
-                      }
-                    />
-
-                    <DialogContent className="sm:max-w-sm">
-                      <form
-                        className="m-5"
-                        onSubmit={(e) => handleUpdateSection(e, item.id)}
-                      >
-                        <Input
-                          type="text"
-                          value={updatedTitle}
-                          onChange={(e) => setUpdatedTitle(e.target.value)}
-                          placeholder="Section title"
-                        />
-
-                        <DialogFooter>
-                          <Button type="submit">Update Section</Button>
-                          <DialogClose
-                            render={
-                              <Button variant="outline" type="button">
-                                Cancel
-                              </Button>
-                            }
-                          />
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                <Button onClick={() => handleDeleteSection(item.id)}>
-                  Delete Section
+        <div>
+          <Dialog>
+            <DialogTrigger
+              render={
+                <Button variant="outline">
+                  {" "}
+                  <Plus /> Create Section
                 </Button>
+              }
+            />
 
-                <div>
-                  <Dialog>
-                    <DialogTrigger
-                      render={
-                        <Button variant="outline">
-                          {" "}
-                          <Plus /> Add Issue
-                        </Button>
-                      }
-                    />
+            <DialogContent className="sm:max-w-sm">
+              <form className="m-5" onSubmit={handleCreateSection}>
+                <Input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Section title"
+                />
 
-                    <DialogContent className="sm:max-w-sm">
-                      <form
-                        className="m-5"
-                        onSubmit={(e) => handleAddIssue(e, item.id)}
-                      >
-                        <Input
-                          type="text"
-                          value={issueTitle}
-                          onChange={(e) => setIssueTitle(e.target.value)}
-                          placeholder="Issue title"
-                        />
-                        <Input
-                          type="text"
-                          value={issueDescription}
-                          onChange={(e) => setIssueDescription(e.target.value)}
-                          placeholder="Issue Description"
-                        />
+                <DialogFooter>
+                  <Button type="submit">Create Section</Button>
+                  <DialogClose
+                    render={
+                      <Button variant="outline" type="button">
+                        Cancel
+                      </Button>
+                    }
+                  />
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-                        <DialogFooter>
-                          <Button type="submit">Add Issue</Button>
-                          <DialogClose
-                            render={
-                              <Button variant="outline" type="button">
-                                Cancel
-                              </Button>
-                            }
+        <div>
+          {section.length === 0 ? (
+            <p>No sections yet</p>
+          ) : (
+            <div className="flex justify-evenly">
+              {section.map((item) => (
+                <Section key={item.id} section={item}>
+                  <div>
+                    <Dialog>
+                      <DialogTrigger
+                        render={
+                          <Button
+                            variant="outline"
+                            onClick={() => setUpdatedTitle(item.title)}
+                          >
+                            Update Section
+                          </Button>
+                        }
+                      />
+
+                      <DialogContent className="sm:max-w-sm">
+                        <form
+                          className="m-5"
+                          onSubmit={(e) => handleUpdateSection(e, item.id)}
+                        >
+                          <Input
+                            type="text"
+                            value={updatedTitle}
+                            onChange={(e) => setUpdatedTitle(e.target.value)}
+                            placeholder="Section title"
                           />
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                </div>
 
-                <div>
-                  {issue
-                    .filter((c) => c.sectionId === item.id)
-                    .map((c) => (
-                      <div key={c.id} className="border ">
-                        <h3>Title: {c.title}</h3>
-                        <p>Description: {c.description}</p>
-
-                        <div>
-                          <Dialog>
-                            <DialogTrigger
+                          <DialogFooter>
+                            <Button type="submit">Update Section</Button>
+                            <DialogClose
                               render={
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setUpdatedIssueTitle(c.title);
-                                    setUpdatedIssueDescription(c.description);
-                                  }}
-                                >
-                                  Update Issue
+                                <Button variant="outline" type="button">
+                                  Cancel
                                 </Button>
                               }
                             />
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
 
-                            <DialogContent className="sm:max-w-sm">
-                              <form
-                                className="m-5"
-                                onSubmit={(e) => handleUpdateIssue(e, c.id, item.id)}
-                              >
-                                <Input
-                                  value={updatedIssueTitle}
-                                  onChange={(e) =>
-                                    setUpdatedIssueTitle(e.target.value)
-                                  }
-                                  placeholder="Issue title"
-                                />
+                  <Button onClick={() => handleDeleteSection(item.id)}>
+                    Delete Section
+                  </Button>
 
-                                <Input
-                                  value={updatedIssueDescription}
-                                  onChange={(e) =>
-                                    setUpdatedIssueDescription(e.target.value)
-                                  }
-                                  placeholder="Issue description"
-                                />
+                  <div>
+                    <Dialog>
+                      <DialogTrigger
+                        render={
+                          <Button variant="outline">
+                            {" "}
+                            <Plus /> Add Issue
+                          </Button>
+                        }
+                      />
 
-                                <DialogFooter>
-                                  <Button type="submit">Update Issue</Button>
-
-                                  <DialogClose
-                                    render={
-                                      <Button variant="outline" type="button">
-                                        Cancel
-                                      </Button>
-                                    }
-                                  />
-                                </DialogFooter>
-                              </form>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                        <Button
-                          onClick={() => handleDeleteIssue(item.id, c.id)}
+                      <DialogContent className="sm:max-w-sm">
+                        <form
+                          className="m-5"
+                          onSubmit={(e) => handleAddIssue(e, item.id)}
                         >
-                          Delete Issue
-                        </Button>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                          <Input
+                            type="text"
+                            value={issueTitle}
+                            onChange={(e) => setIssueTitle(e.target.value)}
+                            placeholder="Issue title"
+                          />
+                          <Input
+                            type="text"
+                            value={issueDescription}
+                            onChange={(e) =>
+                              setIssueDescription(e.target.value)
+                            }
+                            placeholder="Issue Description"
+                          />
+
+                          <DialogFooter>
+                            <Button type="submit">Add Issue</Button>
+                            <DialogClose
+                              render={
+                                <Button variant="outline" type="button">
+                                  Cancel
+                                </Button>
+                              }
+                            />
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+
+                  <div>
+                    {issue
+                      .filter((c) => c.sectionId === item.id)
+                      .map((c) => (
+                        <IssueCard key={c.id} issue={c}>
+                          <div>
+                            <Dialog>
+                              <DialogTrigger
+                                render={
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setUpdatedIssueTitle(c.title);
+                                      setUpdatedIssueDescription(c.description);
+                                    }}
+                                  >
+                                    Update Issue
+                                  </Button>
+                                }
+                              />
+
+                              <DialogContent className="sm:max-w-sm">
+                                <form
+                                  className="m-5"
+                                  onSubmit={(e) =>
+                                    handleUpdateIssue(e, c.id, item.id)
+                                  }
+                                >
+                                  <Input
+                                    value={updatedIssueTitle}
+                                    onChange={(e) =>
+                                      setUpdatedIssueTitle(e.target.value)
+                                    }
+                                    placeholder="Issue title"
+                                  />
+
+                                  <Input
+                                    value={updatedIssueDescription}
+                                    onChange={(e) =>
+                                      setUpdatedIssueDescription(e.target.value)
+                                    }
+                                    placeholder="Issue description"
+                                  />
+
+                                  <DialogFooter>
+                                    <Button type="submit">Update Issue</Button>
+
+                                    <DialogClose
+                                      render={
+                                        <Button variant="outline" type="button">
+                                          Cancel
+                                        </Button>
+                                      }
+                                    />
+                                  </DialogFooter>
+                                </form>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                          <Button
+                            onClick={() => handleDeleteIssue(item.id, c.id)}
+                          >
+                            Delete Issue
+                          </Button>
+                        </IssueCard>
+                      ))}
+                  </div>
+                </Section>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </DndProvider>
   );
 };
 
