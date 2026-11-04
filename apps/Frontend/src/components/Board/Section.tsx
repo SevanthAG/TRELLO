@@ -21,8 +21,11 @@ const Section = ({ section, children }: SectionProps) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "ISSUE",
     drop: (item: DragItem) => {
-        console.log("Issue ID:", item.id);
-    console.log("Target Section ID:", section.id);
+      console.log(item.sectionId)
+      console.log("Issue ID:", item.id);
+      console.log("Target Section ID:", section.id);
+      item.sectionId = section.id;
+
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),

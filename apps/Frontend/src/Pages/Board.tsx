@@ -16,6 +16,8 @@ import IssueCard from "@/components/Board/IssueCard";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Section from "@/components/Board/Section";
+import type { Issue, WsEvent } from "@/lib/types";
+import { useBoardStore } from "@/Store/BoardStrore";
 
 type BoardSection = {
   id: string;
@@ -23,14 +25,10 @@ type BoardSection = {
   boardId: string;
 };
 
-type Issue = {
-  id: string;
-  title: string;
-  description: string;
-  sectionId: string;
-};
-
 const Board = () => {
+  const { issue, addIssue, deleteIssue, putIssue, updateIssue } =
+    useBoardStore();
+
   const { boardId } = useParams();
   const [title, setTitle] = useState("");
   const [section, setSection] = useState<BoardSection[]>([]);
@@ -39,7 +37,7 @@ const Board = () => {
 
   const [issueTitle, setIssueTitle] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
-  const [issue, setIssue] = useState<Issue[]>([]);
+  // const [issue, setIssue] = useState<Issue[]>([]);
 
   const [updatedIssueTitle, setUpdatedIssueTitle] = useState("");
   const [updatedIssueDescription, setUpdatedIssueDescription] = useState("");
@@ -68,7 +66,7 @@ const Board = () => {
     };
 
     socket.onmessage = (event) => {
-      const parsedData = JSON.parse(event.data);
+      const parsedData = JSON.parse(event.data) as WsEvent;
 
       if (parsedData.type == "section_added") {
         setSection((prev) => [...prev, parsedData.payload]);
@@ -91,27 +89,30 @@ const Board = () => {
       }
 
       if (parsedData.type == "Issue_Added") {
-        setIssue((prev) => [...prev, parsedData.payload]);
+        // setIssue((prev) => [...prev, parsedData.payload]);
+        addIssue(parsedData.payload);
       }
 
       if (parsedData.type === "issue_updated") {
-        setIssue((prev) =>
-          prev.map((item) =>
-            item.id === parsedData.payload.id
-              ? {
-                  ...item,
-                  title: parsedData.payload.title,
-                  description: parsedData.payload.description,
-                }
-              : item,
-          ),
-        );
+        // setIssue((prev) =>
+        //   prev.map((item) =>
+        //     item.id === parsedData.payload.id
+        //       ? {
+        //           ...item,
+        //           title: parsedData.payload.title,
+        //           description: parsedData.payload.description,
+        //         }
+        //       : item,
+        //   ),
+        // );
+        updateIssue(parsedData.payload)
       }
 
       if (parsedData.type == "issue_deleted") {
-        setIssue((prev) =>
-          prev.filter((item) => item.id !== parsedData.payload.id),
-        );
+        // setIssue((prev) =>
+        //   prev.filter((item) => item.id !== parsedData.payload.id),
+        // );
+        deleteIssue(parsedData.payload.id)
       }
     };
 
@@ -159,7 +160,7 @@ const Board = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        setIssue(response.data.issues);
+        putIssue(response.data.issues);
       } catch (err) {
         toast.add({ title: "Failed to load issues", type: "error" });
       }
