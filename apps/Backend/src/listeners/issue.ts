@@ -171,3 +171,65 @@ export const updateIssue = async (
     payload: updatedIssue,
   });
 };
+
+export const moveIssue = async (
+  socket: AuthenticatedWebSocket,
+  data: any,
+ ) => {
+  const section = await prisma.section.findFirst({
+    where: {
+      id: data.payload.sectionId,
+      boardId: data.boardId,
+    },
+  });
+
+  if (!section) {
+    return;
+  }
+
+  const board = await prisma.board.findFirst({
+    where: {
+      id: data.boardId,
+    },
+  });
+
+  if (!board) {
+    return;
+  }
+
+  const membership = await prisma.membership.findFirst({
+    where: {
+      userId: socket.userId,
+      organizationId: board.organizationId,
+    },
+  });
+
+  if (!membership) {
+    return;
+  }
+
+  const issue = await prisma.issue.findFirst({
+    where: {
+      id: data.payload.issueId,
+      sectionId: section.id,
+    },
+  });
+
+  if (!issue) {
+    return;
+  }
+
+  const updatedIssue = await prisma.issue.update({
+    where: {
+      id: issue.id,
+    },
+    data: {
+      sectionId: data.payload.newSectionId,
+    },
+  });
+  
+  broadcastToBoard(data.boardId, {
+    type: "issue_moved",
+    payload: updatedIssue,
+  });
+}

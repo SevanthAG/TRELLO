@@ -1,5 +1,7 @@
 import { useDrop } from "react-dnd";
 import type { ReactNode } from "react";
+import { useBoardStore } from "@/Store/BoardStrore";
+import { useSocketStore } from "@/Store/socketStore";
 
 type BoardSection = {
   id: string;
@@ -18,14 +20,21 @@ type SectionProps = {
 };
 
 const Section = ({ section, children }: SectionProps) => {
+  const { moveIssue } = useBoardStore();
+  const { wsSend } = useSocketStore();
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "ISSUE",
     drop: (item: DragItem) => {
-      console.log(item.sectionId)
-      console.log("Issue ID:", item.id);
-      console.log("Target Section ID:", section.id);
-      item.sectionId = section.id;
-
+      wsSend({
+        type: "move_issue",
+        boardId: section.boardId,
+        payload: {
+          issueId: item.id,
+          sectionId: item.sectionId,
+          newSectionId: section.id,
+        },
+      });
+      moveIssue(item.id, section.id);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),

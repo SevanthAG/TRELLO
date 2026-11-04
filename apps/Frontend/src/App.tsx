@@ -5,7 +5,6 @@ import Dashboard from "./Pages/Dashboard";
 import Setting from "./Pages/Setting";
 import Signin from "./Pages/Signin";
 import Signup from "./Pages/Signup";
-import ChessboardSample from "./Pages/Sample/ChessboardSample";
 import { BrowserRouter, Routes, Route } from "react-router";
 
 function App() {
@@ -15,7 +14,6 @@ function App() {
         <Routes>
           <Route path="/signin" element={<Signin />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/sample" element={<ChessboardSample />} />
           <Route element={<ProtectedRoutes />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/organization/:orgId/settings" element={<Setting />} />

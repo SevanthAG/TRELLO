@@ -1,6 +1,6 @@
 import { toast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   Dialog,
@@ -16,8 +16,9 @@ import IssueCard from "@/components/Board/IssueCard";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Section from "@/components/Board/Section";
-import type { Issue, WsEvent } from "@/lib/types";
 import { useBoardStore } from "@/Store/BoardStrore";
+import { useSocketStore } from "@/Store/socketStore";
+import type { WsEvent } from "types/client";
 
 type BoardSection = {
   id: string;
@@ -26,8 +27,9 @@ type BoardSection = {
 };
 
 const Board = () => {
-  const { issue, addIssue, deleteIssue, putIssue, updateIssue } =
+  const { issue, addIssue, deleteIssue, putIssue, updateIssue ,moveIssue} =
     useBoardStore();
+  const { socket, setSocket, wsSend } = useSocketStore();
 
   const { boardId } = useParams();
   const [title, setTitle] = useState("");
@@ -43,26 +45,21 @@ const Board = () => {
   const [updatedIssueDescription, setUpdatedIssueDescription] = useState("");
 
   const navigate = useNavigate();
-  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    if (!setSocket()) {
       navigate("/signin");
-      return;
     }
+  }, []);
 
-    const socket = new WebSocket(
-      `ws://localhost:3000?token=${encodeURIComponent(token)}`,
-    );
+  useEffect(() => {
+    if (!socket || !boardId) return;
 
     socket.onopen = () => {
-      socket.send(
-        JSON.stringify({
-          type: "join_room",
-          boardId: boardId,
-        }),
-      );
+      wsSend({
+        type: "join_room",
+        boardId,
+      });
     };
 
     socket.onmessage = (event) => {
@@ -94,34 +91,26 @@ const Board = () => {
       }
 
       if (parsedData.type === "issue_updated") {
-        // setIssue((prev) =>
-        //   prev.map((item) =>
-        //     item.id === parsedData.payload.id
-        //       ? {
-        //           ...item,
-        //           title: parsedData.payload.title,
-        //           description: parsedData.payload.description,
-        //         }
-        //       : item,
-        //   ),
-        // );
-        updateIssue(parsedData.payload)
+        updateIssue(parsedData.payload);
+      }
+
+      if (parsedData.type == "issue_moved") {
+        moveIssue(parsedData.payload.id, parsedData.payload.sectionId);
       }
 
       if (parsedData.type == "issue_deleted") {
-        // setIssue((prev) =>
-        //   prev.filter((item) => item.id !== parsedData.payload.id),
-        // );
-        deleteIssue(parsedData.payload.id)
+        deleteIssue(parsedData.payload.id);
+      }
+
+      if(parsedData.type == "issue_moved") {
+        
       }
     };
-
-    socketRef.current = socket;
 
     return () => {
       socket.close();
     };
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
     const getSection = async () => {
@@ -171,15 +160,14 @@ const Board = () => {
 
   const handleCreateSection = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    socketRef.current?.send(
-      JSON.stringify({
-        type: "add_section",
-        boardId,
-        payload: {
-          title: title,
-        },
-      }),
-    );
+    if (!boardId) return;
+    wsSend({
+      type: "add_section",
+      boardId,
+      payload: {
+        title: title,
+      },
+    });
   };
 
   const handleUpdateSection = async (
@@ -187,28 +175,26 @@ const Board = () => {
     sectionId: string,
   ) => {
     e.preventDefault();
-    socketRef.current?.send(
-      JSON.stringify({
-        type: "update_section",
-        boardId,
-        payload: {
-          title: updatedTitle,
-          sectionId,
-        },
-      }),
-    );
+    if (!boardId) return;
+    wsSend({
+      type: "update_section",
+      boardId,
+      payload: {
+        title: updatedTitle,
+        sectionId,
+      },
+    });
   };
 
   const handleDeleteSection = async (sectionId: string) => {
-    socketRef.current?.send(
-      JSON.stringify({
-        type: "delete_section",
-        boardId,
-        payload: {
-          sectionId,
-        },
-      }),
-    );
+    if (!boardId) return;
+    wsSend({
+      type: "delete_section",
+      boardId,
+      payload: {
+        sectionId,
+      },
+    });
   };
 
   const handleAddIssue = async (
@@ -216,17 +202,16 @@ const Board = () => {
     sectionId: string,
   ) => {
     e.preventDefault();
-    socketRef.current?.send(
-      JSON.stringify({
-        type: "add_issue",
-        boardId,
-        payload: {
-          sectionId,
-          title: issueTitle,
-          description: issueDescription,
-        },
-      }),
-    );
+    if (!boardId) return;
+    wsSend({
+      type: "add_issue",
+      boardId,
+      payload: {
+        sectionId,
+        title: issueTitle,
+        description: issueDescription,
+      },
+    });
   };
 
   const handleUpdateIssue = (
@@ -235,32 +220,30 @@ const Board = () => {
     sectionId: string,
   ) => {
     e.preventDefault();
+    if (!boardId) return;
 
-    socketRef.current?.send(
-      JSON.stringify({
-        type: "update_issue",
-        boardId,
-        payload: {
-          sectionId,
-          issueId,
-          title: updatedIssueTitle,
-          description: updatedIssueDescription,
-        },
-      }),
-    );
+    wsSend({
+      type: "update_issue",
+      boardId,
+      payload: {
+        sectionId,
+        issueId,
+        title: updatedIssueTitle,
+        description: updatedIssueDescription,
+      },
+    });
   };
 
   const handleDeleteIssue = async (sectionId: string, issueId: string) => {
-    socketRef.current?.send(
-      JSON.stringify({
-        type: "delete_issue",
-        boardId,
-        payload: {
-          sectionId,
-          issueId,
-        },
-      }),
-    );
+    if (!boardId) return;
+    wsSend({
+      type: "delete_issue",
+      boardId,
+      payload: {
+        sectionId,
+        issueId,
+      },
+    });
   };
 
   return (

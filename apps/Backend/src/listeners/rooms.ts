@@ -1,3 +1,4 @@
+import type { WsEvent } from "types/client";
 import type { AuthenticatedWebSocket } from "../lib/types";
 
 const rooms = new Map<String, Set<AuthenticatedWebSocket>>();
@@ -16,7 +17,7 @@ export const joinRoom = async (
   room.add(socket);
 };
 
-export const broadcastToBoard = async (boardId: string, message: unknown) => {
+export const broadcastToBoard = async (boardId: string, message: WsEvent) => {
   const room = rooms.get(boardId);
 
   if (!room) {

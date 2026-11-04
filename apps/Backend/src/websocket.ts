@@ -5,7 +5,8 @@ import type { AuthenticatedWebSocket, JwtUser } from "./lib/types";
 import { addSection, delteSection, updateSection } from "./listeners/section";
 import { parse } from "node:url";
 import { joinRoom } from "./listeners/rooms";
-import { createIssue, deleteIssue, updateIssue } from "./listeners/issue";
+import { createIssue, deleteIssue, moveIssue, updateIssue } from "./listeners/issue";
+import type { WsEvent } from "types/client";
 
 export function setUpWebSocket(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
@@ -38,7 +39,7 @@ export function setUpWebSocket(server: Server) {
 
   wss.on("connection", (socket: AuthenticatedWebSocket) => {
     socket.on("message", (data) => {
-      const parsedData = JSON.parse(data.toString());
+      const parsedData = JSON.parse(data.toString()) as WsEvent;
 
       if (parsedData.type == "join_room") {
         joinRoom(parsedData.boardId, socket);
@@ -54,6 +55,10 @@ export function setUpWebSocket(server: Server) {
 
       if (parsedData.type == "delete_section") {
         delteSection(socket, parsedData);
+      }
+
+      if (parsedData.type == "move_issue") {
+        moveIssue(socket, parsedData);
       }
 
       if (parsedData.type == "add_issue") {

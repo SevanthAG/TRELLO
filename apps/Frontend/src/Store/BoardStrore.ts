@@ -1,4 +1,4 @@
-import type { Issue } from "@/lib/types";
+import type { Issue } from "types/client";
 import { create } from "zustand";
 
 type Store = {
@@ -7,10 +7,18 @@ type Store = {
   updateIssue: (issue: Issue) => void;
   deleteIssue: (issueId: string) => void;
   addIssue: (issue: Issue) => void;
+  moveIssue: (issueId: string, newSectionId: string) => void;
 };
 
 export const useBoardStore = create<Store>()((set, get) => ({
   issue: [],
+  moveIssue: (issueId, newSectionId) => {
+    const { issue } = get();
+    const updatedIssues = issue.map((item) =>
+      item.id === issueId ? { ...item, sectionId: newSectionId } : item,
+    );
+    set({ issue: updatedIssues });
+  },
   addIssue: (issue) => set((state) => ({ issue: [...state.issue, issue] })),
   putIssue: (issue) => set({ issue }),
   updateIssue: (updatedIssue) => {
