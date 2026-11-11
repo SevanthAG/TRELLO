@@ -14,11 +14,9 @@ import issueRouter from "./routes/issue.route";
 import { authmiddleware } from "./middleware/authmidleware";
 import { setUpWebSocket } from "./websocket";
 
-import cookieParser from "cookie-parser";
 
 const app = express();
 
-app.use(cookieParser());
 
 app.use(
   cors({
