@@ -1,5 +1,7 @@
 import WebSocket from "ws";
 
+export type Token = string | undefined;
+
 export type JwtUser = {
   userId:string,
 }
