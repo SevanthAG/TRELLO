@@ -45,8 +45,8 @@ authRoute.post("/signup", async (req, res) => {
         email: user.email,
       },
     });
-  } catch(err){
-    console.log(err)
+  } catch (err) {
+    console.log(err);
     return res.status(500).json({
       message: "Error..!!",
     });
@@ -93,8 +93,8 @@ authRoute.post("/signin", async (req, res) => {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, 
-    })
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     return res.json({
       message: "Signin successful",
@@ -102,7 +102,7 @@ authRoute.post("/signin", async (req, res) => {
         id: user.id,
         email: user.email,
       },
-      token, //Todo #Must be Removed 
+      token, //Todo #Must be Removed
     });
   } catch (error) {
     console.error(error);
