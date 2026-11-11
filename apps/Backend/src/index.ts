@@ -14,7 +14,9 @@ import issueRouter from "./routes/issue.route";
 import { authmiddleware } from "./middleware/authmidleware";
 import { setUpWebSocket } from "./websocket";
 
+
 const app = express();
+
 
 app.use(
   cors({
@@ -24,6 +26,7 @@ app.use(
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
