@@ -207,18 +207,17 @@ const Setting = () => {
               >
                 <Label>Organization Name: </Label>
                 <Input
-            value={orgName}
-            onChange={(e) => setOrgName(e.target.value)}
-            placeholder="New organization name"
-          />
-    
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="New organization name"
+                />
 
                 <Label>Organization Description: </Label>
                 <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="New description"
-          />
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="New description"
+                />
 
                 <DialogFooter>
                   <Button type="submit">Update Organization</Button>

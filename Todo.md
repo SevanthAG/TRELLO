@@ -30,9 +30,8 @@
 - [ ] `src/index.ts`: keep the server object that `app.listen(...)` returns (right now it's thrown away).
 - [ ] Create `src/websock
 
+et.ts`that takes that server and attaches`ws` to it.
 
-
-et.ts` that takes that server and attaches `ws` to it.
 - [ ] Call it from `index.ts` after the server starts listening.
 - **Direction:** browser → server (connect only). No frontend calls yet.
 - **Checkpoint:** a raw socket can connect (browser console / `wscat`) and the server logs it.

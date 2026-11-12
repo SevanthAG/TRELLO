@@ -5,7 +5,12 @@ import type { AuthenticatedWebSocket, JwtUser } from "./lib/types";
 import { addSection, delteSection, updateSection } from "./listeners/section";
 import { parse } from "node:url";
 import { joinRoom } from "./listeners/rooms";
-import { createIssue, deleteIssue, moveIssue, updateIssue } from "./listeners/issue";
+import {
+  createIssue,
+  deleteIssue,
+  moveIssue,
+  updateIssue,
+} from "./listeners/issue";
 import type { WsEvent } from "types/client";
 
 export function setUpWebSocket(server: Server) {
@@ -65,7 +70,7 @@ export function setUpWebSocket(server: Server) {
         createIssue(socket, parsedData);
       }
 
-      if(parsedData.type == "update_issue") {
+      if (parsedData.type == "update_issue") {
         updateIssue(socket, parsedData);
       }
 

@@ -27,7 +27,7 @@ type BoardSection = {
 };
 
 const Board = () => {
-  const { issue, addIssue, deleteIssue, putIssue, updateIssue ,moveIssue} =
+  const { issue, addIssue, deleteIssue, putIssue, updateIssue, moveIssue } =
     useBoardStore();
   const { socket, setSocket, wsSend } = useSocketStore();
 
@@ -102,8 +102,7 @@ const Board = () => {
         deleteIssue(parsedData.payload.id);
       }
 
-      if(parsedData.type == "issue_moved") {
-        
+      if (parsedData.type == "issue_moved") {
       }
     };
 
