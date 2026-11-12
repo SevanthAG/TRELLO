@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import type { JwtUser } from "../lib/types";
 import { prisma } from "db/client";
 import jwt from "jsonwebtoken";
+import { authmiddleware } from "../middleware/authmidleware";
 
 const authRoute = Router();
 
@@ -103,6 +104,40 @@ authRoute.post("/signin", async (req, res) => {
         email: user.email,
       },
       token, //Todo #Must be Removed
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Error..!!",
+    });
+  }
+});
+
+authRoute.get("/me", authmiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    return res.json({
+      id: user.id,
+      email: user.email,
     });
   } catch (error) {
     console.error(error);

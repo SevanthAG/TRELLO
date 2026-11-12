@@ -113,18 +113,8 @@ const Board = () => {
 
   useEffect(() => {
     const getSection = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
-
       try {
-        const response = await api.get(`/section/${boardId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get(`/section/${boardId}`);
         setSection(response.data.sections);
       } catch (err) {
         toast.add({

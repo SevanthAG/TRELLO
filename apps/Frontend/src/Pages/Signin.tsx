@@ -18,10 +18,8 @@ const Signin = () => {
         password,
       };
 
-      const response = await api.post("/auth/signin", data);
-      const token = response.data.token;
+      await api.post("/auth/signin", data);
 
-      localStorage.setItem("token", token);
       toast.add({
         title: "Signin successful!",
         description: "Logged in Succssful.",
