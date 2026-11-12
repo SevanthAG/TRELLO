@@ -1,14 +1,13 @@
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
 import {  Navigate, Outlet  } from "react-router";
+import Loader from "./Loader";
 
 const ProtectedRoutes = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-
   useEffect(() => {
-    
     const getMe = async () => {
       try {
         await api.get("/auth/me");
@@ -22,7 +21,7 @@ const ProtectedRoutes = () => {
     getMe();
   }, []);
 
-  if(loading) return null;
+  if(loading) return <Loader />;
 
   return isAuthenticated ? <Outlet /> : <Navigate to = "/" replace />;
 };
