@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate, useParams } from "react-router";
+import { useParams } from "react-router";
 import {
   Table,
   TableBody,
@@ -48,8 +48,6 @@ const Setting = () => {
 
   const [member, setMember] = useState<Member[]>([]);
 
-  const navigate = useNavigate();
-
   const items = [
     { label: "ADMIN", value: "ADMIN" },
     { label: "MEMBER", value: "MEMBER" },
@@ -59,11 +57,6 @@ const Setting = () => {
     e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
     if (!orgName.trim() && !description.trim()) {
       toast.add({
         title: "At least one field is required",
@@ -78,11 +71,7 @@ const Setting = () => {
       if (orgName.trim()) data.orgName = orgName.trim();
       if (description.trim()) data.description = description.trim();
 
-      await api.patch(`/organization/${orgId}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await api.patch(`/organization/${orgId}`, data);
 
       toast.add({
         title: "Organization updated successfully",
@@ -114,11 +103,6 @@ const Setting = () => {
 
   const handleAddmember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
     try {
       const data = {
         email,
@@ -133,11 +117,7 @@ const Setting = () => {
         return;
       }
 
-      const response = await api.post(`/member/${orgId}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post(`/member/${orgId}`, data);
       setMember((prev) => [...prev, response.data.member]);
       toast.add({
         title: "Member Added",
@@ -162,17 +142,8 @@ const Setting = () => {
 
   useEffect(() => {
     const getMembers = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
       try {
-        const response = await api.get(`/member/${orgId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get(`/member/${orgId}`);
         setMember(response.data.membership);
       } catch (err) {
         toast.add({
