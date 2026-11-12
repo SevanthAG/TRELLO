@@ -35,7 +35,7 @@ const Signup = () => {
       toast.add({
         title: "Signup failed",
         description: "Unable to create your account. Please try again.",
-        type: "error"
+        type: "error",
       });
     }
   };

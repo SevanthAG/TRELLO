@@ -172,10 +172,7 @@ export const updateIssue = async (
   });
 };
 
-export const moveIssue = async (
-  socket: AuthenticatedWebSocket,
-  data: any,
- ) => {
+export const moveIssue = async (socket: AuthenticatedWebSocket, data: any) => {
   const section = await prisma.section.findFirst({
     where: {
       id: data.payload.sectionId,
@@ -227,9 +224,9 @@ export const moveIssue = async (
       sectionId: data.payload.newSectionId,
     },
   });
-  
+
   broadcastToBoard(data.boardId, {
     type: "issue_moved",
     payload: updatedIssue,
   });
-}
+};

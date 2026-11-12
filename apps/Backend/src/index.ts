@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -13,21 +12,18 @@ import issueRouter from "./routes/issue.route";
 
 import { authmiddleware } from "./middleware/authmidleware";
 import { setUpWebSocket } from "./websocket";
-
+import cookieParser from "cookie-parser";
 
 const app = express();
-
+app.use(cookieParser());
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-    ],
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());

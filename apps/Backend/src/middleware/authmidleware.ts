@@ -1,35 +1,29 @@
 import { type NextFunction, type Request, type Response } from "express";
-import  jwt  from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import type { JwtUser } from "../lib/types";
 
-export const authmiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const Authheader = req.headers.authorization;
+export const authmiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const token: string | undefined = req.cookies.token;
 
-    if(!Authheader || typeof Authheader !== "string") {
-        return res.status(401).json({
-            message:"Token Missing.."
-        })
-    }
+  if (!token) {
+    return res.status(401).json({
+      message: "Token Missing...",
+    });
+  }
 
-    const token = Authheader.split(" ")[1]
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtUser;
 
-    if(!token){
-        return res.status(401).json({
-            message: "Token Missing..."
-        })
-    }
+    req.userId = decoded.userId;
 
-    try{
-        const decoded = jwt.verify(token, 
-            process.env.JWT_SECRET!
-        ) as JwtUser
-        
-        req.userId = decoded.userId;
-
-        next();
-    }catch(err){
-        return res.status(401).json({
-            message: "Invalid token or expired token."
-        })
-    }
-}
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      message: "Invalid token or expired token.",
+    });
+  }
+};

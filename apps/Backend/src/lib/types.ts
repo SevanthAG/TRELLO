@@ -1,8 +1,8 @@
 import WebSocket from "ws";
 
 export type JwtUser = {
-  userId:string,
-}
+  userId: string;
+};
 
 declare global {
   namespace Express {
