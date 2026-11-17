@@ -17,9 +17,13 @@ export function setUpWebSocket(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", async (req, socket, head) => {
-    const { query } = parse(req.url ?? "", true);
-    const token = query.token;
+    const cookie = req.headers.cookie;
 
+    const token = cookie
+    ?.split("; ")
+    .find((c) => c.startsWith("token="))
+    ?.slice(6);
+  
     if (typeof token !== "string" || !token) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();

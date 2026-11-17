@@ -10,15 +10,7 @@ type Store = {
 export const useSocketStore = create<Store>()((set, get) => ({
   socket: null,
   setSocket: () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      return false;
-    }
-
-    const socket = new WebSocket(
-      `ws://localhost:3000?token=${encodeURIComponent(token)}`,
-    );
+    const socket = new WebSocket(`ws://localhost:3000`);
 
     set({ socket });
     return true;
