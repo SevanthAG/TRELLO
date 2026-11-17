@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import type { JwtUser } from "../lib/types";
 import { prisma } from "db/client";
 import jwt from "jsonwebtoken";
-import { authmiddleware } from "../middleware/authmidleware";
+import { authmiddleware } from "../middleware/authmiddleware";
 
 const authRoute = Router();
 
@@ -103,7 +103,6 @@ authRoute.post("/signin", async (req, res) => {
         id: user.id,
         email: user.email,
       },
-      token, //Todo #Must be Removed
     });
   } catch (error) {
     console.error(error);

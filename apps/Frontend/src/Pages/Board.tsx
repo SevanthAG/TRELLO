@@ -39,7 +39,6 @@ const Board = () => {
 
   const [issueTitle, setIssueTitle] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
-  // const [issue, setIssue] = useState<Issue[]>([]);
 
   const [updatedIssueTitle, setUpdatedIssueTitle] = useState("");
   const [updatedIssueDescription, setUpdatedIssueDescription] = useState("");
