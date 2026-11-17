@@ -18,23 +18,15 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import Section from "@/components/Board/Section";
 import { useBoardStore } from "@/Store/BoardStrore";
 import { useSocketStore } from "@/Store/socketStore";
-import type { WsEvent } from "types/client";
-
-type BoardSection = {
-  id: string;
-  title: string;
-  boardId: string;
-};
+import { useBoardSocket } from "@/hooks/useBoardSocket";
 
 const Board = () => {
-  const { issue, addIssue, deleteIssue, putIssue, updateIssue, moveIssue } =
-    useBoardStore();
-  const { socket, setSocket, wsSend } = useSocketStore();
+  const { issue, putIssue } = useBoardStore();
+  const { setSocket, wsSend } = useSocketStore();
 
   const { boardId } = useParams();
-  const [title, setTitle] = useState("");
-  const [section, setSection] = useState<BoardSection[]>([]);
 
+  const [title, setTitle] = useState("");
   const [updatedTitle, setUpdatedTitle] = useState("");
 
   const [issueTitle, setIssueTitle] = useState("");
@@ -52,64 +44,7 @@ const Board = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (!socket || !boardId) return;
-
-    socket.onopen = () => {
-      wsSend({
-        type: "join_room",
-        boardId,
-      });
-    };
-
-    socket.onmessage = (event) => {
-      const parsedData = JSON.parse(event.data) as WsEvent;
-
-      if (parsedData.type == "section_added") {
-        setSection((prev) => [...prev, parsedData.payload]);
-      }
-
-      if (parsedData.type === "section_updated") {
-        setSection((prev) =>
-          prev.map((item) =>
-            item.id === parsedData.payload.id
-              ? { ...item, title: parsedData.payload.title }
-              : item,
-          ),
-        );
-      }
-
-      if (parsedData.type == "section_deleted") {
-        setSection((prev) =>
-          prev.filter((item) => item.id !== parsedData.payload.id),
-        );
-      }
-
-      if (parsedData.type == "Issue_Added") {
-        // setIssue((prev) => [...prev, parsedData.payload]);
-        addIssue(parsedData.payload);
-      }
-
-      if (parsedData.type === "issue_updated") {
-        updateIssue(parsedData.payload);
-      }
-
-      if (parsedData.type == "issue_moved") {
-        moveIssue(parsedData.payload.id, parsedData.payload.sectionId);
-      }
-
-      if (parsedData.type == "issue_deleted") {
-        deleteIssue(parsedData.payload.id);
-      }
-
-      if (parsedData.type == "issue_moved") {
-      }
-    };
-
-    return () => {
-      socket.close();
-    };
-  }, [socket]);
+  const { section, setSection } = useBoardSocket(boardId);
 
   useEffect(() => {
     const getSection = async () => {
