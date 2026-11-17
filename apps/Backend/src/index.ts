@@ -10,7 +10,7 @@ import boardRoute from "./routes/boards.route";
 import sectionRouter from "./routes/section.route";
 import issueRouter from "./routes/issue.route";
 
-import { authmiddleware } from "./middleware/authmidleware";
+import { authmiddleware } from "./middleware/authmiddleware";
 import { setUpWebSocket } from "./websocket";
 import cookieParser from "cookie-parser";
 

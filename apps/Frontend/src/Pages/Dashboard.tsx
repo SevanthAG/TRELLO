@@ -53,11 +53,6 @@ const Dashboard = () => {
     e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
 
     try {
       const data = {
@@ -74,11 +69,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await api.post("/organization", data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post("/organization", data);
 
       const newOrganization = {
         id: response.data.organization,
@@ -106,17 +97,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     const getOrganization = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
       try {
-        const response = await api.get("/organization", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get("/organization");
 
         setOrganization(response.data.organizations);
       } catch (err) {
@@ -128,11 +110,6 @@ const Dashboard = () => {
 
   const handleCreateBoard = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
     try {
       const data = {
         title,
@@ -146,11 +123,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await api.post(`/board/${selectedOrganization}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post(`/board/${selectedOrganization}`, data);
 
       const newBoard = {
         id: response.data.newBoard.id,
@@ -179,17 +152,8 @@ const Dashboard = () => {
       return;
     }
     const getBoard = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
       try {
-        const response = await api.get(`/board/${selectedOrganization}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get(`/board/${selectedOrganization}`);
         setBoard(response.data.boards);
       } catch (err) {
         toast.add({

@@ -1,7 +1,7 @@
 import type { WsEvent } from "types/client";
 import type { AuthenticatedWebSocket } from "../lib/types";
 
-const rooms = new Map<String, Set<AuthenticatedWebSocket>>();
+const rooms = new Map<string, Set<AuthenticatedWebSocket>>();
 
 export const joinRoom = async (
   boardId: string,
