@@ -125,18 +125,8 @@ const Board = () => {
     getSection();
 
     const getIssues = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/signin");
-        return;
-      }
-
       try {
-        const response = await api.get(`/issue/board/${boardId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get(`/issue/board/${boardId}`);
         putIssue(response.data.issues);
       } catch (err) {
         toast.add({ title: "Failed to load issues", type: "error" });
